@@ -232,3 +232,40 @@ INSERT INTO gallery_photos (id, title, category, image_url, description, display
   ('gal-5', 'Community School Internship Program', 'Internship', 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1000&auto=format&fit=crop', 'Practical teaching practice sessions in local elementary schools.', 5, TRUE, '2026-04-20 10:00:00+00'),
   ('gal-6', 'Campus Library & Reference Section', 'Campus', 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1000&auto=format&fit=crop', 'Curriculum research and lesson planning at the institution library.', 6, TRUE, '2026-04-25 10:00:00+00')
 ON CONFLICT (id) DO NOTHING;
+
+-- 8. Faculties Table
+CREATE TABLE IF NOT EXISTS faculties (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  designation TEXT NOT NULL,
+  qualification TEXT NOT NULL,
+  expertise TEXT,
+  department TEXT DEFAULT 'General',
+  image_url TEXT,
+  image_key TEXT,
+  email TEXT,
+  phone TEXT,
+  display_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_faculties_active ON faculties(is_active, display_order ASC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_faculties_department ON faculties(department);
+
+ALTER TABLE faculties ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view active faculties" ON faculties;
+CREATE POLICY "Public can view active faculties" ON faculties FOR SELECT USING (is_active = TRUE);
+
+DROP POLICY IF EXISTS "Service role has full access to faculties" ON faculties;
+CREATE POLICY "Service role has full access to faculties" ON faculties USING (TRUE) WITH CHECK (TRUE);
+
+-- Seed Initial Faculties Data
+INSERT INTO faculties (id, name, designation, qualification, expertise, department, image_url, display_order, is_active) VALUES
+  ('fac-1', 'Shanavas Paravannur', 'Principal', 'M.Ed, M.Phil', 'Educational Leadership & Administration', 'Administration', '/principal.jpeg', 1, TRUE),
+  ('fac-2', 'MK Bava Sahib', 'Manager', 'M.A, B.Ed', 'Institutional Management', 'Administration', '/manager.jpeg', 2, TRUE),
+  ('fac-3', 'Dr. A. Basheer', 'Senior Lecturer, Pedagogy', 'M.Ed, Ph.D', 'Child Psychology & Curriculum Design', 'Pedagogy', '/principal.jpeg', 3, TRUE)
+ON CONFLICT (id) DO NOTHING;
+

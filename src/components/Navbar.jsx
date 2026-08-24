@@ -15,14 +15,15 @@ export default function Navbar({ announcements = [], onOpenAnnouncementModal }) 
   }, []);
 
   const navLinks = [
-    { name: 'Home', href: '#hero' },
-    { name: 'Announcements', href: '#announcements', badge: announcements.length > 0 ? announcements.length : null },
-    { name: 'Our Story', href: '#about' },
-    { name: 'Achievements', href: '#achievements' },
-    { name: 'Why SSMO', href: '#why-ssmo' },
-    { name: 'D.El.Ed', href: '#courses' },
-    { name: 'Gallery', href: '#gallery' },
-    { name: 'Visit Us', href: '#contact' },
+    { name: 'Home', href: '/#hero' },
+    { name: 'Announcements', href: '/#announcements', badge: announcements.length > 0 ? announcements.length : null },
+    { name: 'Our Story', href: '/#about' },
+    { name: 'Achievements', href: '/#achievements' },
+    { name: 'Why SSMO', href: '/#why-ssmo' },
+    { name: 'D.El.Ed', href: '/#courses' },
+    { name: 'Gallery', href: '/gallery' },
+    { name: 'Faculties', href: '/faculties' },
+    { name: 'Visit Us', href: '/#contact' },
   ];
 
   return (

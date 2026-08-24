@@ -63,14 +63,15 @@ export default function Footer({ settings = {} }) {
               Index Navigation
             </div>
             <ul className="space-y-2 text-ink-light-secondary">
-              <li><a href="#hero" className="hover:text-white transition-colors">01. Home & Identity</a></li>
-              <li><a href="#announcements" className="hover:text-white transition-colors">02. Announcements & Circulars</a></li>
-              <li><a href="#about" className="hover:text-white transition-colors">03. Our Story & Leadership</a></li>
-              <li><a href="#achievements" className="hover:text-white transition-colors">04. Achievements & Accolades</a></li>
-              <li><a href="#why-ssmo" className="hover:text-white transition-colors">05. Why ITE</a></li>
-              <li><a href="#courses" className="hover:text-white transition-colors">06. D.El.Ed Course Details</a></li>
-              <li><a href="#gallery" className="hover:text-white transition-colors">07. Photo & Media Archive</a></li>
-              <li><a href="#contact" className="hover:text-white transition-colors">08. Visit Us & Location</a></li>
+              <li><a href="/#hero" className="hover:text-white transition-colors">01. Home & Identity</a></li>
+              <li><a href="/#announcements" className="hover:text-white transition-colors">02. Announcements & Circulars</a></li>
+              <li><a href="/#about" className="hover:text-white transition-colors">03. Our Story & Leadership</a></li>
+              <li><a href="/#achievements" className="hover:text-white transition-colors">04. Achievements & Accolades</a></li>
+              <li><a href="/#why-ssmo" className="hover:text-white transition-colors">05. Why ITE</a></li>
+              <li><a href="/#courses" className="hover:text-white transition-colors">06. D.El.Ed Course Details</a></li>
+              <li><a href="/gallery" className="hover:text-white transition-colors">07. Photo & Media Archive</a></li>
+              <li><a href="/faculties" className="hover:text-white transition-colors">08. Meet Our Faculties</a></li>
+              <li><a href="/#contact" className="hover:text-white transition-colors">09. Visit Us & Location</a></li>
             </ul>
           </div>
 

@@ -1,23 +1,17 @@
 /**
- * Self-contained API Router — all handler logic inlined.
+ * Self-contained API Router — Pure Supabase Backend
+ * Handles all CRUD endpoints directly with Supabase PostgreSQL and Supabase Storage.
  * Single serverless function entry point via api/index.js.
  */
 
 import crypto from 'node:crypto';
 import Busboy from 'busboy';
-import { d1Query } from './d1.js';
-import { getSupabase, dbQuery, uploadFileToSupabase, deleteFileFromSupabase } from './supabase.js';
-import { uploadToR2, deleteFromR2, deleteManyFromR2, getFromR2, generateObjectKey, validateUploadFile } from './r2.js';
+import { getSupabase, uploadFileToSupabase, deleteFileFromSupabase, getPublicUrl } from './supabase.js';
 import { requireAuth } from './auth.js';
 import { json, error, parseBody } from './response.js';
 import { checkRateLimit, validateEnquiryInput, getClientIp } from './security.js';
 
 // ─── Route Matching ────────────────────────────────────────────────────────
-
-function matchRoute(pathname, pattern) {
-  const regex = new RegExp('^' + pattern.replace(/\//g, '\\/').replace(/:([^/]+)/g, '([^/]+)') + '$');
-  return pathname.match(regex);
-}
 
 function extractId(pathname, prefix) {
   const re = new RegExp('^' + prefix.replace(/\//g, '\\/') + '/([^/]+)$');
@@ -33,25 +27,32 @@ async function announcementsList(req, res) {
   const search = url.searchParams.get('search');
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
 
-  let sql = 'SELECT * FROM announcements WHERE 1=1';
-  const params = [];
+  const supabase = getSupabase();
+  let query = supabase.from('announcements').select('*');
 
-  if (!includeInactive) sql += ' AND is_active = 1';
-  if (category && category !== 'All') { sql += ' AND category = ?'; params.push(category); }
-  if (search && search.trim()) {
-    sql += ' AND (title LIKE ? OR content LIKE ?)';
-    const term = `%${search.trim()}%`;
-    params.push(term, term);
+  if (!includeInactive) {
+    query = query.eq('is_active', true);
   }
-  sql += ' ORDER BY is_pinned DESC, created_at DESC';
-  const { results } = await d1Query(sql, params);
-  return json(res, results || []);
+  if (category && category !== 'All') {
+    query = query.eq('category', category);
+  }
+  if (search && search.trim()) {
+    query = query.or(`title.ilike.%${search.trim()}%,content.ilike.%${search.trim()}%`);
+  }
+
+  query = query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+
+  const { data, error: sbErr } = await query;
+  if (sbErr) throw sbErr;
+  return json(res, data || []);
 }
 
 async function announcementsGet(req, res, id) {
-  const { results } = await d1Query('SELECT * FROM announcements WHERE id = ?', [id]);
-  if (!results || results.length === 0) return error(res, 'Not found', 404);
-  return json(res, results[0]);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('announcements').select('*').eq('id', id).maybeSingle();
+  if (sbErr) throw sbErr;
+  if (!data) return error(res, 'Not found', 404);
+  return json(res, data);
 }
 
 async function announcementsCreate(req, res) {
@@ -64,45 +65,60 @@ async function announcementsCreate(req, res) {
   const id = `ann-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').substring(0, 80);
 
-  await d1Query(
-    `INSERT INTO announcements (id, title, slug, content, category, badge, link, image_key, attachment_key, is_pinned, is_active, published_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [id, title.trim(), slug, content?.trim() || '', category, badge, link?.trim() || '', image_key, attachment_key, is_pinned ? 1 : 0, is_active ? 1 : 0]
-  );
-  const { results } = await d1Query('SELECT * FROM announcements WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id, title }, 201);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('announcements').insert({
+    id,
+    title: title.trim(),
+    slug,
+    content: content?.trim() || '',
+    category,
+    badge,
+    link: link?.trim() || '',
+    image_key,
+    attachment_key,
+    is_pinned: !!is_pinned,
+    is_active: is_active !== false && is_active !== 0,
+    published_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).select().single();
+
+  if (sbErr) throw sbErr;
+  return json(res, data, 201);
 }
 
 async function announcementsUpdate(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  const fields = [];
-  const params = [];
+  const updateData = {};
 
   for (const [key, val] of Object.entries(body)) {
     if (['title', 'content', 'category', 'badge', 'link', 'image_key', 'attachment_key'].includes(key)) {
-      fields.push(`${key} = ?`);
-      params.push(val);
+      updateData[key] = val;
+      if (key === 'title' && val) {
+        updateData.slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').substring(0, 80);
+      }
     }
-    if (['is_pinned', 'is_active'].includes(key)) {
-      fields.push(`${key} = ?`);
-      params.push(val ? 1 : 0);
-    }
+    if (key === 'is_pinned') updateData.is_pinned = !!val;
+    if (key === 'is_active') updateData.is_active = val !== false && val !== 0;
   }
 
-  if (fields.length === 0) return error(res, 'No fields to update', 400);
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  params.push(id);
+  if (Object.keys(updateData).length === 0) return error(res, 'No fields to update', 400);
+  updateData.updated_at = new Date().toISOString();
 
-  await d1Query(`UPDATE announcements SET ${fields.join(', ')} WHERE id = ?`, params);
-  const { results } = await d1Query('SELECT * FROM announcements WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id });
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('announcements').update(updateData).eq('id', id).select().single();
+  if (sbErr) throw sbErr;
+  return json(res, data || { id });
 }
 
 async function announcementsDelete(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  await d1Query('DELETE FROM announcements WHERE id = ?', [id]);
+  const supabase = getSupabase();
+  const { error: sbErr } = await supabase.from('announcements').delete().eq('id', id);
+  if (sbErr) throw sbErr;
   return json(res, { success: true, message: 'Deleted' });
 }
 
@@ -114,59 +130,92 @@ async function achievementsList(req, res) {
   const search = url.searchParams.get('search');
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
 
-  let sql = 'SELECT * FROM achievements WHERE 1=1';
-  const params = [];
-  if (!includeInactive) sql += ' AND is_active = 1';
-  if (category && category !== 'All') { sql += ' AND category = ?'; params.push(category); }
-  if (search && search.trim()) { sql += ' AND (title LIKE ? OR description LIKE ?)'; const t = `%${search.trim()}%`; params.push(t, t); }
-  sql += ' ORDER BY is_pinned DESC, created_at DESC';
-  const { results } = await d1Query(sql, params);
-  return json(res, results || []);
+  const supabase = getSupabase();
+  let query = supabase.from('achievements').select('*');
+
+  if (!includeInactive) {
+    query = query.eq('is_published', true);
+  }
+  if (category && category !== 'All') {
+    query = query.eq('category', category);
+  }
+  if (search && search.trim()) {
+    query = query.or(`title.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%`);
+  }
+
+  query = query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
+
+  const { data, error: sbErr } = await query;
+  if (sbErr) throw sbErr;
+  return json(res, data || []);
 }
 
 async function achievementsGet(req, res, id) {
-  const { results } = await d1Query('SELECT * FROM achievements WHERE id = ?', [id]);
-  if (!results || results.length === 0) return error(res, 'Not found', 404);
-  return json(res, results[0]);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('achievements').select('*').eq('id', id).maybeSingle();
+  if (sbErr) throw sbErr;
+  if (!data) return error(res, 'Not found', 404);
+  return json(res, data);
 }
 
 async function achievementsCreate(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  const { title, description = '', category = 'General', image_key = null, is_active = true } = body;
+  const { title, subtitle = '', description = '', category = 'General', year = '2026', image_url = '', image_key = null, rank_badge = '', display_order = 0, is_published = true } = body;
   if (!title || !title.trim()) return error(res, 'Title is required', 400);
+
   const id = `ach-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-  await d1Query(
-    `INSERT INTO achievements (id, title, description, category, image_key, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [id, title.trim(), description?.trim() || '', category, image_key, is_active ? 1 : 0]
-  );
-  const { results } = await d1Query('SELECT * FROM achievements WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id, title }, 201);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('achievements').insert({
+    id,
+    title: title.trim(),
+    subtitle: subtitle?.trim() || '',
+    description: description?.trim() || '',
+    category,
+    year: String(year || '2026'),
+    image_url: image_url?.trim() || '',
+    image_key,
+    rank_badge: rank_badge?.trim() || '',
+    display_order: Number(display_order) || 0,
+    is_published: is_published !== false && is_published !== 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).select().single();
+
+  if (sbErr) throw sbErr;
+  return json(res, data, 201);
 }
 
 async function achievementsUpdate(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  const fields = [];
-  const params = [];
+  const updateData = {};
+
   for (const [key, val] of Object.entries(body)) {
-    if (['title', 'description', 'category', 'image_key'].includes(key)) { fields.push(`${key} = ?`); params.push(val); }
-    if (key === 'is_active') { fields.push('is_active = ?'); params.push(val ? 1 : 0); }
+    if (['title', 'subtitle', 'description', 'category', 'year', 'image_url', 'image_key', 'rank_badge'].includes(key)) {
+      updateData[key] = val;
+    }
+    if (key === 'display_order') updateData.display_order = Number(val) || 0;
+    if (key === 'is_published' || key === 'is_active') updateData.is_published = val !== false && val !== 0;
   }
-  if (fields.length === 0) return error(res, 'No fields to update', 400);
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  params.push(id);
-  await d1Query(`UPDATE achievements SET ${fields.join(', ')} WHERE id = ?`, params);
-  const { results } = await d1Query('SELECT * FROM achievements WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id });
+
+  if (Object.keys(updateData).length === 0) return error(res, 'No fields to update', 400);
+  updateData.updated_at = new Date().toISOString();
+
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('achievements').update(updateData).eq('id', id).select().single();
+  if (sbErr) throw sbErr;
+  return json(res, data || { id });
 }
 
 async function achievementsDelete(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  await d1Query('DELETE FROM achievements WHERE id = ?', [id]);
+  const supabase = getSupabase();
+  const { error: sbErr } = await supabase.from('achievements').delete().eq('id', id);
+  if (sbErr) throw sbErr;
   return json(res, { success: true, message: 'Deleted' });
 }
 
@@ -176,60 +225,94 @@ async function galleryList(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const category = url.searchParams.get('category');
   const limit = parseInt(url.searchParams.get('limit'), 10);
+  const includeInactive = url.searchParams.get('includeInactive') === 'true';
 
-  let sql = 'SELECT * FROM gallery_photos WHERE is_published = 1';
-  const params = [];
-  if (category && category !== 'All') { sql += ' AND category = ?'; params.push(category); }
-  sql += ' ORDER BY display_order ASC, created_at DESC';
-  if (limit && !isNaN(limit) && limit > 0) { sql += ' LIMIT ?'; params.push(limit); }
-  const { results } = await d1Query(sql, params);
-  return json(res, results || []);
+  const supabase = getSupabase();
+  let query = supabase.from('gallery_photos').select('*');
+
+  if (!includeInactive) {
+    query = query.eq('is_published', true);
+  }
+  if (category && category !== 'All') {
+    query = query.eq('category', category);
+  }
+
+  query = query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
+
+  if (limit && !isNaN(limit) && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error: sbErr } = await query;
+  if (sbErr) throw sbErr;
+  return json(res, data || []);
 }
 
 async function galleryGet(req, res, id) {
-  const { results } = await d1Query('SELECT * FROM gallery_photos WHERE id = ?', [id]);
-  if (!results || results.length === 0) return error(res, 'Not found', 404);
-  return json(res, results[0]);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('gallery_photos').select('*').eq('id', id).maybeSingle();
+  if (sbErr) throw sbErr;
+  if (!data) return error(res, 'Not found', 404);
+  return json(res, data);
 }
 
 async function galleryCreate(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  const { title, category = 'Campus', image_url, image_key = null, description = '', album_id = null, display_order = 0, is_published = 1 } = body;
+  const { title, category = 'Campus', image_url, image_key = null, description = '', album_id = null, display_order = 0, is_published = true } = body;
   if (!title || !title.trim()) return error(res, 'Title is required', 400);
   if (!image_url || !image_url.trim()) return error(res, 'Image URL is required', 400);
+
   const id = `gal-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-  await d1Query(
-    `INSERT INTO gallery_photos (id, album_id, title, category, image_url, image_key, description, display_order, is_published, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [id, album_id, title.trim(), category, image_url.trim(), image_key, description?.trim() || '', Number(display_order) || 0, is_published ? 1 : 0]
-  );
-  const { results } = await d1Query('SELECT * FROM gallery_photos WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id, title }, 201);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('gallery_photos').insert({
+    id,
+    album_id: album_id || null,
+    title: title.trim(),
+    category,
+    image_url: image_url.trim(),
+    image_key,
+    description: description?.trim() || '',
+    display_order: Number(display_order) || 0,
+    is_published: is_published !== false && is_published !== 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).select().single();
+
+  if (sbErr) throw sbErr;
+  return json(res, data, 201);
 }
 
 async function galleryUpdate(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  const fields = [];
-  const params = [];
+  const updateData = {};
+
   for (const [key, val] of Object.entries(body)) {
-    if (['title', 'category', 'image_url', 'image_key', 'description', 'album_id'].includes(key)) { fields.push(`${key} = ?`); params.push(val); }
-    if (['display_order', 'is_published'].includes(key)) { fields.push(`${key} = ?`); params.push(Number(val) || 0); }
+    if (['title', 'category', 'image_url', 'image_key', 'description', 'album_id'].includes(key)) {
+      updateData[key] = val;
+    }
+    if (key === 'display_order') updateData.display_order = Number(val) || 0;
+    if (key === 'is_published') updateData.is_published = val !== false && val !== 0;
   }
-  if (fields.length === 0) return error(res, 'No fields to update', 400);
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  params.push(id);
-  await d1Query(`UPDATE gallery_photos SET ${fields.join(', ')} WHERE id = ?`, params);
-  const { results } = await d1Query('SELECT * FROM gallery_photos WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id });
+
+  if (Object.keys(updateData).length === 0) return error(res, 'No fields to update', 400);
+  updateData.updated_at = new Date().toISOString();
+
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('gallery_photos').update(updateData).eq('id', id).select().single();
+  if (sbErr) throw sbErr;
+  return json(res, data || { id });
 }
 
 async function galleryDelete(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  await d1Query('DELETE FROM gallery_photos WHERE id = ?', [id]);
+  const supabase = getSupabase();
+  const { error: sbErr } = await supabase.from('gallery_photos').delete().eq('id', id);
+  if (sbErr) throw sbErr;
   return json(res, { success: true, message: 'Deleted' });
 }
 
@@ -238,16 +321,20 @@ async function galleryDelete(req, res, id) {
 async function enquiriesList(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  const { results } = await d1Query('SELECT * FROM enquiries ORDER BY created_at DESC');
-  return json(res, results || []);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false });
+  if (sbErr) throw sbErr;
+  return json(res, data || []);
 }
 
 async function enquiriesGet(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  const { results } = await d1Query('SELECT * FROM enquiries WHERE id = ?', [id]);
-  if (!results || results.length === 0) return error(res, 'Not found', 404);
-  return json(res, results[0]);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('enquiries').select('*').eq('id', id).maybeSingle();
+  if (sbErr) throw sbErr;
+  if (!data) return error(res, 'Not found', 404);
+  return json(res, data);
 }
 
 async function enquiriesCreate(req, res) {
@@ -262,37 +349,58 @@ async function enquiriesCreate(req, res) {
   }
 
   const id = `enq-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-  await d1Query(
-    `INSERT INTO enquiries (id, name, email, phone, subject, message, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)`,
-    [id, validated.name, validated.email, validated.phone, validated.subject, validated.message]
-  );
-  return json(res, { success: true, message: 'Enquiry submitted successfully' }, 201);
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('enquiries').insert({
+    id,
+    name: validated.name,
+    email: validated.email,
+    phone: validated.phone || '',
+    subject: validated.subject || 'General Query',
+    message: validated.message,
+    status: 'new',
+    is_read: false,
+    ip_address: ip,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).select().single();
+
+  if (sbErr) throw sbErr;
+  return json(res, { success: true, message: 'Enquiry submitted successfully', data }, 201);
 }
 
 async function enquiriesUpdate(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
-  if (body.is_read !== undefined) {
-    await d1Query('UPDATE enquiries SET is_read = ? WHERE id = ?', [body.is_read ? 1 : 0, id]);
-  }
-  const { results } = await d1Query('SELECT * FROM enquiries WHERE id = ?', [id]);
-  return json(res, results?.[0] || { id });
+  const updateData = {};
+
+  if (body.is_read !== undefined) updateData.is_read = !!body.is_read;
+  if (body.status !== undefined) updateData.status = body.status;
+  updateData.updated_at = new Date().toISOString();
+
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('enquiries').update(updateData).eq('id', id).select().single();
+  if (sbErr) throw sbErr;
+  return json(res, data || { id });
 }
 
 async function enquiriesDelete(req, res, id) {
   const user = await requireAuth(req, res);
   if (!user) return;
-  await d1Query('DELETE FROM enquiries WHERE id = ?', [id]);
+  const supabase = getSupabase();
+  const { error: sbErr } = await supabase.from('enquiries').delete().eq('id', id);
+  if (sbErr) throw sbErr;
   return json(res, { success: true, message: 'Deleted' });
 }
 
 // ─── Settings Handler ──────────────────────────────────────────────────────
 
 async function settingsGet(req, res) {
-  const { results } = await d1Query('SELECT key, value FROM settings');
+  const supabase = getSupabase();
+  const { data, error: sbErr } = await supabase.from('settings').select('key, value');
+  if (sbErr) throw sbErr;
   const map = {};
-  for (const row of results || []) map[row.key] = row.value;
+  for (const row of data || []) map[row.key] = row.value;
   return json(res, map);
 }
 
@@ -300,22 +408,31 @@ async function settingsPut(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
+  const supabase = getSupabase();
+
+  const records = [];
   for (const [key, value] of Object.entries(body)) {
     if (typeof key === 'string' && key.trim()) {
-      const val = value != null ? String(value) : '';
-      await d1Query(
-        `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
-        [key.trim(), val]
-      );
+      records.push({
+        key: key.trim(),
+        value: value != null ? String(value) : '',
+        updated_at: new Date().toISOString()
+      });
     }
   }
-  const { results } = await d1Query('SELECT key, value FROM settings');
+
+  if (records.length > 0) {
+    const { error: sbErr } = await supabase.from('settings').upsert(records);
+    if (sbErr) throw sbErr;
+  }
+
+  const { data } = await supabase.from('settings').select('key, value');
   const map = {};
-  for (const row of results || []) map[row.key] = row.value;
+  for (const row of data || []) map[row.key] = row.value;
   return json(res, map);
 }
 
-// ─── Upload Handler ────────────────────────────────────────────────────────
+// ─── Upload Handler (Supabase Storage) ─────────────────────────────────────
 
 async function uploadFile(req, res) {
   const user = await requireAuth(req, res);
@@ -330,42 +447,296 @@ async function uploadFile(req, res) {
     let fileProcessed = false;
     let uploadPromise = null;
 
-    busboy.on('field', (name, val) => { if (name === 'folder' && val) folder = val.replace(/[^a-zA-Z0-9_-]/g, ''); });
+    busboy.on('field', (name, val) => {
+      if (name === 'folder' && val) folder = val.replace(/[^a-zA-Z0-9_-]/g, '');
+    });
+
     busboy.on('file', (fieldname, fileStream, fileInfo) => {
       fileProcessed = true;
       const { filename, mimeType } = fileInfo;
-      try { validateUploadFile({ filename, contentType: mimeType }); } catch (e) { fileStream.resume(); return reject(e); }
+      const cleanFilename = (filename || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const ext = cleanFilename.includes('.') ? cleanFilename.split('.').pop().toLowerCase() : '';
+      const allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'mp4'];
+      if (ext && !allowedExts.includes(ext)) {
+        fileStream.resume();
+        return reject(new Error(`File type .${ext} is not supported.`));
+      }
+
       const chunks = [];
       fileStream.on('data', chunk => chunks.push(chunk));
       fileStream.on('limit', () => reject(new Error('File size exceeds 25MB limit')));
       fileStream.on('end', () => {
         const buffer = Buffer.concat(chunks);
-        const key = generateObjectKey(folder, filename);
-        uploadPromise = uploadToR2({ buffer, key, contentType: mimeType }).then(r => ({ ...r, originalFilename: filename, mimeType }));
+        const uniqueKey = `${folder}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${cleanFilename}`;
+        uploadPromise = uploadFileToSupabase({
+          buffer,
+          key: uniqueKey,
+          contentType: mimeType || 'application/octet-stream'
+        }).then(r => ({
+          ...r,
+          originalFilename: filename,
+          mimeType
+        }));
       });
     });
+
     busboy.on('finish', async () => {
       if (!fileProcessed || !uploadPromise) return reject(new Error('No file was uploaded'));
-      try { resolve(await uploadPromise); } catch (e) { reject(e); }
+      try {
+        resolve(await uploadPromise);
+      } catch (e) {
+        reject(e);
+      }
     });
+
     busboy.on('error', reject);
     req.pipe(busboy);
   });
 
-  return json(res, { success: true, url: uploadResult.url, key: uploadResult.key, filename: uploadResult.originalFilename, size: uploadResult.size, storage: uploadResult.storage }, 201);
+  return json(res, {
+    success: true,
+    url: uploadResult.url,
+    key: uploadResult.key,
+    filename: uploadResult.originalFilename,
+    size: uploadResult.size,
+    storage: 'supabase'
+  }, 201);
 }
 
 // ─── Files Proxy Handler ───────────────────────────────────────────────────
 
 async function filesGet(req, res, key) {
   if (!key) return error(res, 'File key is required', 400);
-  const file = await getFromR2(key);
-  if (!file || !file.body) return error(res, 'File not found', 404);
-  if (file.contentType) res.setHeader('Content-Type', file.contentType);
-  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  if (typeof file.body.pipe === 'function') file.body.pipe(res);
-  else if (Buffer.isBuffer(file.body)) res.end(file.body);
-  else { const buf = await file.body.arrayBuffer(); res.end(Buffer.from(buf)); }
+  const publicUrl = getPublicUrl(key);
+  res.writeHead(302, { Location: publicUrl });
+  res.end();
+}
+
+// ─── Faculties Handlers ───────────────────────────────────────────────────
+
+const DEFAULT_FACULTIES = [
+  {
+    id: 'fac-1',
+    name: 'Shanavas Paravannur',
+    designation: 'Principal',
+    qualification: 'M.Ed, M.Phil',
+    expertise: 'Educational Leadership & Administration',
+    department: 'Administration',
+    image_url: '/principal.jpeg',
+    image_key: null,
+    email: 'principal@ssmoite.edu.in',
+    phone: '+91 494 2460300',
+    display_order: 1,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'fac-2',
+    name: 'MK Bava Sahib',
+    designation: 'Manager',
+    qualification: 'M.A, B.Ed',
+    expertise: 'Institutional Management',
+    department: 'Administration',
+    image_url: '/manager.jpeg',
+    image_key: null,
+    email: 'manager@ssmoite.edu.in',
+    phone: '+91 494 2460300',
+    display_order: 2,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'fac-3',
+    name: 'Dr. A. Basheer',
+    designation: 'Senior Lecturer, Pedagogy',
+    qualification: 'M.Ed, Ph.D',
+    expertise: 'Child Psychology & Curriculum Design',
+    department: 'Pedagogy',
+    image_url: '/principal.jpeg',
+    image_key: null,
+    email: 'basheer.pedagogy@ssmoite.edu.in',
+    phone: '',
+    display_order: 3,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  }
+];
+
+async function getFacultiesListHelper(supabase) {
+  try {
+    const { data, error: sbErr } = await supabase.from('faculties').select('*').order('display_order', { ascending: true }).order('created_at', { ascending: false });
+    if (!sbErr && data) return data;
+  } catch {}
+
+  try {
+    const { data: sData } = await supabase.from('settings').select('value').eq('key', 'faculties_data').maybeSingle();
+    if (sData && sData.value) {
+      const parsed = JSON.parse(sData.value);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+
+  return DEFAULT_FACULTIES;
+}
+
+async function saveFacultiesListHelper(supabase, list) {
+  try {
+    await supabase.from('settings').upsert({
+      key: 'faculties_data',
+      value: JSON.stringify(list),
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('Fallback save to settings error:', e.message);
+  }
+}
+
+async function facultiesList(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const department = url.searchParams.get('department');
+  const search = url.searchParams.get('search');
+  const includeInactive = url.searchParams.get('includeInactive') === 'true';
+
+  const supabase = getSupabase();
+  let list = [];
+
+  try {
+    let query = supabase.from('faculties').select('*');
+    if (!includeInactive) query = query.eq('is_active', true);
+    if (department && department !== 'All') query = query.eq('department', department);
+    if (search && search.trim()) {
+      query = query.or(`name.ilike.%${search.trim()}%,designation.ilike.%${search.trim()}%,expertise.ilike.%${search.trim()}%`);
+    }
+    query = query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
+    const { data, error: sbErr } = await query;
+    if (!sbErr && data) {
+      return json(res, data || []);
+    }
+  } catch {}
+
+  list = await getFacultiesListHelper(supabase);
+  if (!includeInactive) list = list.filter(f => f.is_active !== false && f.is_active !== 0);
+  if (department && department !== 'All') list = list.filter(f => f.department === department);
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    list = list.filter(f => (f.name && f.name.toLowerCase().includes(q)) || (f.designation && f.designation.toLowerCase().includes(q)) || (f.expertise && f.expertise.toLowerCase().includes(q)));
+  }
+  list.sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0));
+  return json(res, list);
+}
+
+async function facultiesGet(req, res, id) {
+  const supabase = getSupabase();
+  try {
+    const { data, error: sbErr } = await supabase.from('faculties').select('*').eq('id', id).maybeSingle();
+    if (!sbErr && data) return json(res, data);
+  } catch {}
+
+  const list = await getFacultiesListHelper(supabase);
+  const item = list.find(f => f.id === id);
+  if (!item) return error(res, 'Faculty member not found', 404);
+  return json(res, item);
+}
+
+async function facultiesCreate(req, res) {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+  const body = await parseBody(req);
+  const {
+    name,
+    department = '',
+    designation = '',
+    qualification = '',
+    expertise = '',
+    image_url = '',
+    image_key = null,
+    display_order = 0,
+    is_active = true
+  } = body;
+
+  if (!name || !name.trim()) return error(res, 'Faculty name is required', 400);
+
+  const id = `fac-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+  const newFaculty = {
+    id,
+    name: name.trim(),
+    department: department?.trim() || '',
+    designation: designation?.trim() || department?.trim() || '',
+    qualification: qualification?.trim() || '',
+    expertise: expertise?.trim() || '',
+    image_url: image_url?.trim() || '',
+    image_key: image_key || null,
+    display_order: Number(display_order) || 0,
+    is_active: is_active !== false && is_active !== 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  const supabase = getSupabase();
+  try {
+    const { data, error: sbErr } = await supabase.from('faculties').insert(newFaculty).select().single();
+    if (!sbErr && data) {
+      return json(res, data, 201);
+    }
+  } catch {}
+
+  const list = await getFacultiesListHelper(supabase);
+  const updatedList = [newFaculty, ...list];
+  await saveFacultiesListHelper(supabase, updatedList);
+  return json(res, newFaculty, 201);
+}
+
+async function facultiesUpdate(req, res, id) {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+  const body = await parseBody(req);
+  const updateData = {};
+
+  for (const [key, val] of Object.entries(body)) {
+    if (['name', 'designation', 'qualification', 'expertise', 'department', 'image_url', 'image_key', 'email', 'phone'].includes(key)) {
+      updateData[key] = val;
+    }
+    if (key === 'display_order') updateData.display_order = Number(val) || 0;
+    if (key === 'is_active') updateData.is_active = val !== false && val !== 0;
+  }
+
+  if (Object.keys(updateData).length === 0) return error(res, 'No fields to update', 400);
+  updateData.updated_at = new Date().toISOString();
+
+  const supabase = getSupabase();
+  try {
+    const { data, error: sbErr } = await supabase.from('faculties').update(updateData).eq('id', id).select().single();
+    if (!sbErr && data) {
+      return json(res, data);
+    }
+  } catch {}
+
+  const list = await getFacultiesListHelper(supabase);
+  const idx = list.findIndex(f => f.id === id);
+  if (idx === -1) return error(res, 'Faculty member not found', 404);
+  list[idx] = { ...list[idx], ...updateData };
+  await saveFacultiesListHelper(supabase, list);
+  return json(res, list[idx]);
+}
+
+async function facultiesDelete(req, res, id) {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+  const supabase = getSupabase();
+  try {
+    const { error: sbErr } = await supabase.from('faculties').delete().eq('id', id);
+    if (!sbErr) {
+      return json(res, { success: true, message: 'Deleted' });
+    }
+  } catch {}
+
+  const list = await getFacultiesListHelper(supabase);
+  const updatedList = list.filter(f => f.id !== id);
+  await saveFacultiesListHelper(supabase, updatedList);
+  return json(res, { success: true, message: 'Deleted' });
 }
 
 // ─── Main Router ───────────────────────────────────────────────────────────
@@ -396,7 +767,7 @@ export async function handleApiRequest(req, res) {
     }
 
     // Admin enquiries
-    if (path === '/api/admin/enquiries') {
+    if (path === '/api/admin/enquiries' || path === '/api/admin/inquiries') {
       if (method === 'GET') return await enquiriesList(req, res);
     }
 
@@ -404,11 +775,11 @@ export async function handleApiRequest(req, res) {
     const enqId = extractId(path, '/api/(?:admin/)?(?:enquiries|inquiries)');
     if (enqId) {
       const readMatch = path.match(/\/read$/);
-      if (readMatch && method === 'PATCH') {
+      if (readMatch && (method === 'PATCH' || method === 'PUT')) {
         return await enquiriesUpdate(req, res, enqId);
       }
       if (method === 'GET') return await enquiriesGet(req, res, enqId);
-      if (method === 'PATCH') return await enquiriesUpdate(req, res, enqId);
+      if (method === 'PATCH' || method === 'PUT') return await enquiriesUpdate(req, res, enqId);
       if (method === 'DELETE') return await enquiriesDelete(req, res, enqId);
     }
 
@@ -420,7 +791,7 @@ export async function handleApiRequest(req, res) {
     const annId = extractId(path, '/api/(?:admin/)?announcements');
     if (annId) {
       if (method === 'GET') return await announcementsGet(req, res, annId);
-      if (method === 'PUT') return await announcementsUpdate(req, res, annId);
+      if (method === 'PUT' || method === 'PATCH') return await announcementsUpdate(req, res, annId);
       if (method === 'DELETE') return await announcementsDelete(req, res, annId);
     }
 
@@ -432,7 +803,7 @@ export async function handleApiRequest(req, res) {
     const achId = extractId(path, '/api/(?:admin/)?achievements');
     if (achId) {
       if (method === 'GET') return await achievementsGet(req, res, achId);
-      if (method === 'PUT') return await achievementsUpdate(req, res, achId);
+      if (method === 'PUT' || method === 'PATCH') return await achievementsUpdate(req, res, achId);
       if (method === 'DELETE') return await achievementsDelete(req, res, achId);
     }
 
@@ -444,8 +815,20 @@ export async function handleApiRequest(req, res) {
     const galId = extractId(path, '/api/(?:admin/)?gallery');
     if (galId) {
       if (method === 'GET') return await galleryGet(req, res, galId);
-      if (method === 'PUT') return await galleryUpdate(req, res, galId);
+      if (method === 'PUT' || method === 'PATCH') return await galleryUpdate(req, res, galId);
       if (method === 'DELETE') return await galleryDelete(req, res, galId);
+    }
+
+    // Faculties
+    if (path === '/api/faculties' || path === '/api/admin/faculties') {
+      if (method === 'GET') return await facultiesList(req, res);
+      if (method === 'POST') return await facultiesCreate(req, res);
+    }
+    const facId = extractId(path, '/api/(?:admin/)?faculties');
+    if (facId) {
+      if (method === 'GET') return await facultiesGet(req, res, facId);
+      if (method === 'PUT' || method === 'PATCH') return await facultiesUpdate(req, res, facId);
+      if (method === 'DELETE') return await facultiesDelete(req, res, facId);
     }
 
     return error(res, `Route not found: ${method} ${path}`, 404);
@@ -454,3 +837,4 @@ export async function handleApiRequest(req, res) {
     return error(res, err.message || 'Internal Server Error', 500);
   }
 }
+

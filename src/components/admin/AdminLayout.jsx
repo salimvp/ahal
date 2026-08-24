@@ -4,6 +4,7 @@ import {
   Bell,
   Trophy,
   Image as ImageIcon,
+  Users,
   MessageSquare,
   Settings,
   LogOut,
@@ -27,6 +28,7 @@ export default function AdminLayout() {
     { name: 'Announcements & Links', path: '/admin/announcements', icon: Bell },
     { name: 'Moving Achievements', path: '/admin/achievements', icon: Trophy },
     { name: 'Photo Gallery', path: '/admin/gallery', icon: ImageIcon },
+    { name: 'Faculties & Staff', path: '/admin/faculties', icon: Users },
     { name: 'Student Inquiries', path: '/admin/inquiries', icon: MessageSquare },
     { name: 'Institute Profile & Leadership', path: '/admin/settings', icon: Settings },
   ];

@@ -211,6 +211,59 @@ export const api = {
     return data;
   },
 
+  // Faculties
+  async getFaculties(department = 'All', search = '', includeInactive = false) {
+    const params = new URLSearchParams();
+    if (department && department !== 'All') params.append('department', department);
+    if (search) params.append('search', search);
+    if (includeInactive) params.append('includeInactive', 'true');
+
+    const res = await fetch(`${API_BASE}/faculties?${params.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch faculties');
+    return res.json();
+  },
+
+  async getFacultyById(id) {
+    const res = await fetch(`${API_BASE}/faculties/${id}`);
+    if (!res.ok) throw new Error('Faculty not found');
+    return res.json();
+  },
+
+  async createFaculty(payload) {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/faculties`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create faculty');
+    return data;
+  },
+
+  async updateFaculty(id, payload) {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/faculties/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update faculty');
+    return data;
+  },
+
+  async deleteFaculty(id) {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/faculties/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete faculty');
+    return data;
+  },
+
   // Upload
   async uploadFile(file) {
     const { data: { session } } = await supabase.auth.getSession();

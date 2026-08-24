@@ -1,81 +1,77 @@
 #!/usr/bin/env node
 
 /**
- * SSMO Cloudflare D1 Migration Runner
+ * SSMO Supabase Connection & Health Check Runner
  * 
  * Usage:
  *   node scripts/migrate.js
- * 
- * Supports:
- * 1. Cloudflare D1 Database via Cloudflare REST API (if env variables are set)
- * 2. Local SQLite fallback (if env variables are not set)
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
 import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 
-const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
-const CF_D1_DATABASE_ID = process.env.CF_D1_DATABASE_ID;
-const CF_API_TOKEN = process.env.CF_API_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const STORAGE_BUCKET = process.env.SUPABASE_BUCKET_NAME || 'ssmo-assets';
 
-async function runMigration() {
-  const migrationPath = path.join(process.cwd(), 'migrations', '0001_initial_schema.sql');
-  if (!fs.existsSync(migrationPath)) {
-    console.error('Migration file not found:', migrationPath);
+async function checkSupabase() {
+  console.log('====================================================');
+  console.log(' SSMO Institute of Teacher Education - Supabase Backend');
+  console.log('====================================================');
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('❌ Error: Supabase credentials missing in .env');
+    console.error('Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY');
     process.exit(1);
   }
 
-  const sql = fs.readFileSync(migrationPath, 'utf8');
+  console.log(`[Supabase] Connecting to project: ${SUPABASE_URL}`);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  console.log('----------------------------------------------------');
-  console.log(' SSMO College - Cloudflare D1 Database Migrator');
-  console.log('----------------------------------------------------');
-
-  if (CF_ACCOUNT_ID && CF_D1_DATABASE_ID && CF_API_TOKEN) {
-    console.log(`[Cloudflare D1] Connecting to database: ${CF_D1_DATABASE_ID}`);
-    console.log(`[Cloudflare D1] Account ID: ${CF_ACCOUNT_ID}`);
-
-    const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`;
-
+  // 1. Check Tables
+  const tables = ['announcements', 'gallery_photos', 'gallery_albums', 'achievements', 'enquiries', 'settings'];
+  console.log('\n[1/2] Checking Database Tables:');
+  
+  for (const table of tables) {
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${CF_API_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ sql })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        console.error('Migration failed:', data.errors || data);
-        process.exit(1);
+      const { data, error } = await supabase.from(table).select('*').limit(1);
+      if (error) {
+        console.error(`  ❌ Table "${table}": ${error.message}`);
+      } else {
+        console.log(`  ✅ Table "${table}": OK (accessible)`);
       }
-
-      console.log('Migration executed successfully on Cloudflare D1!');
-      console.log('Results summary:', data.result?.length, 'statement batches executed.');
     } catch (err) {
-      console.error('Error connecting to Cloudflare D1:', err.message);
-      process.exit(1);
-    }
-  } else {
-    console.log('[Local SQLite] No Cloudflare credentials detected. Running local migration on .data/local-d1.sqlite...');
-    try {
-      const Database = (await import('better-sqlite3')).default;
-      const dataDir = path.join(process.cwd(), '.data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      const db = new Database(path.join(dataDir, 'local-d1.sqlite'));
-      db.exec(sql);
-      console.log('Local SQLite migration executed successfully!');
-    } catch (err) {
-      console.error('Error executing local migration:', err.message);
-      process.exit(1);
+      console.error(`  ❌ Table "${table}": ${err.message}`);
     }
   }
+
+  // 2. Check Storage Bucket
+  console.log('\n[2/2] Checking Supabase Storage:');
+  try {
+    const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
+    if (bErr) {
+      console.warn(`  ⚠️ Storage listing note: ${bErr.message}`);
+    } else {
+      const exists = (buckets || []).some(b => b.name === STORAGE_BUCKET);
+      if (exists) {
+        console.log(`  ✅ Bucket "${STORAGE_BUCKET}": OK (ready for file uploads)`);
+      } else {
+        console.log(`  ℹ️ Creating bucket "${STORAGE_BUCKET}"...`);
+        const { error: cErr } = await supabase.storage.createBucket(STORAGE_BUCKET, { public: true });
+        if (cErr) {
+          console.warn(`  ⚠️ Could not auto-create bucket: ${cErr.message}`);
+        } else {
+          console.log(`  ✅ Bucket "${STORAGE_BUCKET}": Created successfully`);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`  ⚠️ Storage check: ${err.message}`);
+  }
+
+  console.log('\n====================================================');
+  console.log(' Supabase Backend Ready!');
+  console.log('====================================================');
 }
 
-runMigration();
+checkSupabase();

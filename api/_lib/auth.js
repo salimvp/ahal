@@ -1,17 +1,17 @@
 /**
- * Authentication Library — Supabase JWT Verification (ES256 / JWKS)
+ * Authentication Library — Supabase Auth Verification
  *
  * Features:
- * - Verify Supabase access tokens (JWT) using the project's JWKS endpoint
- * - Caches the public key for performance
+ * - Verify Supabase access tokens using Supabase Auth client & JWKS/JWT fallback
  * - Authentication Middleware for protected API routes
  */
 
 import 'dotenv/config';
 import { importJWK, jwtVerify } from 'jose';
+import { getSupabase } from './supabase.js';
 import { error as sendError } from './response.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const JWKS_URL = SUPABASE_URL ? `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` : null;
 
 let cachedKeys = null;
@@ -38,38 +38,58 @@ async function fetchJWKS() {
 }
 
 /**
- * Verify a Supabase access token (JWT) using JWKS
+ * Verify a Supabase access token (JWT) using JWKS fallback
  * Returns the decoded user payload or null if invalid.
  */
 export async function verifySupabaseToken(token) {
-  if (!token || !JWKS_URL) return null;
+  if (!token) return null;
 
+  // 1. Primary: Direct Supabase getUser validation
   try {
-    const keys = await fetchJWKS();
-    if (!keys || keys.length === 0) return null;
-
-    // Try each key in the JWKS
-    for (const jwk of keys) {
-      try {
-        const publicKey = await importJWK(jwk, jwk.alg || 'ES256');
-        const { payload } = await jwtVerify(token, publicKey, {
-          algorithms: ['ES256'],
-        });
+    const supabase = getSupabase();
+    if (supabase) {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
         return {
-          id: payload.sub,
-          email: payload.email,
-          role: payload.role || 'authenticated',
-          aud: payload.aud,
+          id: user.id,
+          email: user.email,
+          role: user.role || 'authenticated',
+          user_metadata: user.user_metadata
         };
-      } catch {
-        // Wrong key, try next
-        continue;
       }
     }
-    return null;
   } catch (err) {
-    return null;
+    // Continue to JWKS fallback
   }
+
+  // 2. Secondary: JWKS verification
+  if (JWKS_URL) {
+    try {
+      const keys = await fetchJWKS();
+      if (keys && keys.length > 0) {
+        for (const jwk of keys) {
+          try {
+            const publicKey = await importJWK(jwk, jwk.alg || 'ES256');
+            const { payload } = await jwtVerify(token, publicKey, {
+              algorithms: ['ES256'],
+            });
+            return {
+              id: payload.sub,
+              email: payload.email,
+              role: payload.role || 'authenticated',
+              aud: payload.aud,
+            };
+          } catch {
+            continue;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -83,6 +103,11 @@ export async function requireAuth(req, res) {
     return null;
   }
   const token = authHeader.substring(7).trim();
+  if (!token) {
+    sendError(res, 'Unauthorized: Valid authentication required', 401);
+    return null;
+  }
+
   const user = await verifySupabaseToken(token);
   if (!user) {
     sendError(res, 'Unauthorized: Valid authentication required', 401);

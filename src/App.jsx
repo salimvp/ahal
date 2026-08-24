@@ -25,6 +25,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import ManageAnnouncements from './components/admin/ManageAnnouncements';
 import ManageAchievements from './components/admin/ManageAchievements';
 import ManageGallery from './components/admin/ManageGallery';
+import ManageFaculties from './components/admin/ManageFaculties';
 import ManageInquiries from './components/admin/ManageInquiries';
 import ManageSettings from './components/admin/ManageSettings';
 
@@ -153,6 +154,7 @@ export default function App() {
             <Route path="announcements" element={<ManageAnnouncements />} />
             <Route path="achievements" element={<ManageAchievements />} />
             <Route path="gallery" element={<ManageGallery />} />
+            <Route path="faculties" element={<ManageFaculties />} />
             <Route path="inquiries" element={<ManageInquiries />} />
             <Route path="settings" element={<ManageSettings />} />
           </Route>
