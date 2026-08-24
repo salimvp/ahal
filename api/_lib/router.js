@@ -55,7 +55,7 @@ async function announcementsGet(req, res, id) {
 }
 
 async function announcementsCreate(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const { title, link = '', content = '', category = 'Notices', badge = 'NEW', image_key = null, attachment_key = null, is_pinned = false, is_active = true } = body;
@@ -73,7 +73,7 @@ async function announcementsCreate(req, res) {
 }
 
 async function announcementsUpdate(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const fields = [];
@@ -100,7 +100,7 @@ async function announcementsUpdate(req, res, id) {
 }
 
 async function announcementsDelete(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   await d1Query('DELETE FROM announcements WHERE id = ?', [id]);
   return json(res, { success: true, message: 'Deleted' });
@@ -131,7 +131,7 @@ async function achievementsGet(req, res, id) {
 }
 
 async function achievementsCreate(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const { title, description = '', category = 'General', image_key = null, is_active = true } = body;
@@ -146,7 +146,7 @@ async function achievementsCreate(req, res) {
 }
 
 async function achievementsUpdate(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const fields = [];
@@ -164,7 +164,7 @@ async function achievementsUpdate(req, res, id) {
 }
 
 async function achievementsDelete(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   await d1Query('DELETE FROM achievements WHERE id = ?', [id]);
   return json(res, { success: true, message: 'Deleted' });
@@ -193,7 +193,7 @@ async function galleryGet(req, res, id) {
 }
 
 async function galleryCreate(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const { title, category = 'Campus', image_url, image_key = null, description = '', album_id = null, display_order = 0, is_published = 1 } = body;
@@ -209,7 +209,7 @@ async function galleryCreate(req, res) {
 }
 
 async function galleryUpdate(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   const fields = [];
@@ -227,7 +227,7 @@ async function galleryUpdate(req, res, id) {
 }
 
 async function galleryDelete(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   await d1Query('DELETE FROM gallery_photos WHERE id = ?', [id]);
   return json(res, { success: true, message: 'Deleted' });
@@ -236,14 +236,14 @@ async function galleryDelete(req, res, id) {
 // ─── Enquiries / Inquiries Handlers ────────────────────────────────────────
 
 async function enquiriesList(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const { results } = await d1Query('SELECT * FROM enquiries ORDER BY created_at DESC');
   return json(res, results || []);
 }
 
 async function enquiriesGet(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const { results } = await d1Query('SELECT * FROM enquiries WHERE id = ?', [id]);
   if (!results || results.length === 0) return error(res, 'Not found', 404);
@@ -270,7 +270,7 @@ async function enquiriesCreate(req, res) {
 }
 
 async function enquiriesUpdate(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   if (body.is_read !== undefined) {
@@ -281,7 +281,7 @@ async function enquiriesUpdate(req, res, id) {
 }
 
 async function enquiriesDelete(req, res, id) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   await d1Query('DELETE FROM enquiries WHERE id = ?', [id]);
   return json(res, { success: true, message: 'Deleted' });
@@ -297,7 +297,7 @@ async function settingsGet(req, res) {
 }
 
 async function settingsPut(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
   const body = await parseBody(req);
   for (const [key, value] of Object.entries(body)) {
@@ -318,7 +318,7 @@ async function settingsPut(req, res) {
 // ─── Upload Handler ────────────────────────────────────────────────────────
 
 async function uploadFile(req, res) {
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
 
   const contentType = req.headers['content-type'] || '';
