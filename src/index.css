@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-canvas: #f8f7f4;
+    --color-surface: #ffffff;
+    --color-dark: #0b1019;
+    --color-ink: #111622;
+    --color-accent: #0a6c57;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-canvas text-ink-primary font-sans leading-relaxed;
+  }
+
+  /* Headings typography defaults */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-sans text-ink-primary;
+  }
+}
+
+/* Custom Editorial Classes */
+@layer components {
+  /* Fluid Display Headline */
+  .display-title {
+    font-size: clamp(2.5rem, 5.5vw, 5.25rem);
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+
+  .section-title {
+    font-size: clamp(1.875rem, 3.8vw, 3.25rem);
+    line-height: 1.12;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+
+  /* Architectural Eyebrow Label */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.18em] uppercase text-accent font-sans;
+  }
+
+  .eyebrow-dark {
+    @apply inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.18em] uppercase text-accent-light font-sans;
+  }
+
+  /* Editorial Lead Paragraph */
+  .lead-text {
+    @apply text-base sm:text-lg text-ink-secondary leading-relaxed max-w-prose-editorial;
+  }
+
+  .lead-text-dark {
+    @apply text-base sm:text-lg text-ink-light-secondary leading-relaxed max-w-prose-editorial;
+  }
+
+  /* Architectural Surface Containers */
+  .surface-card {
+    @apply bg-surface border border-surface-border rounded-lg shadow-soft-sm hover:shadow-soft-md transition-shadow duration-200;
+  }
+
+  .surface-dark-card {
+    @apply bg-dark-surface border border-dark-border rounded-lg transition-all duration-200;
+  }
+}
+
+/* Subtle, high-performance scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1019;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #243046;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0a6c57;
+}
+
+/* Marquee pause on hover */
+.pause-marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
