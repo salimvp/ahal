@@ -11,7 +11,25 @@ import { requireAuth } from './auth.js';
 import { json, error, parseBody } from './response.js';
 import { checkRateLimit, validateEnquiryInput, getClientIp } from './security.js';
 
-// ─── Route Matching ────────────────────────────────────────────────────────
+// ─── Route Matching & URL Helpers ──────────────────────────────────────────
+
+export function getRequestUrl(req) {
+  const host = req.headers.host || 'localhost';
+  const matchedPath = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-original-url'];
+
+  let target = req.url || '/';
+  // If rewritten by Vercel to /api or /api/index.js, use matchedPath if available
+  if (matchedPath && (target === '/api' || target === '/api/' || target.startsWith('/api/index') || target.startsWith('/api?'))) {
+    target = matchedPath;
+  }
+
+  const parsed = new URL(target, `http://${host}`);
+  if ((parsed.pathname === '/api/index.js' || parsed.pathname === '/api/index') && matchedPath) {
+    const mParsed = new URL(matchedPath, `http://${host}`);
+    parsed.pathname = mParsed.pathname;
+  }
+  return parsed;
+}
 
 function extractId(pathname, prefix) {
   const re = new RegExp('^' + prefix.replace(/\//g, '\\/') + '/([^/]+)$');
@@ -22,7 +40,7 @@ function extractId(pathname, prefix) {
 // ─── Announcement Handlers ─────────────────────────────────────────────────
 
 async function announcementsList(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = getRequestUrl(req);
   const category = url.searchParams.get('category');
   const search = url.searchParams.get('search');
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
@@ -125,7 +143,7 @@ async function announcementsDelete(req, res, id) {
 // ─── Achievement Handlers ──────────────────────────────────────────────────
 
 async function achievementsList(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = getRequestUrl(req);
   const category = url.searchParams.get('category');
   const search = url.searchParams.get('search');
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
@@ -222,7 +240,7 @@ async function achievementsDelete(req, res, id) {
 // ─── Gallery Handlers ──────────────────────────────────────────────────────
 
 async function galleryList(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = getRequestUrl(req);
   const category = url.searchParams.get('category');
   const limit = parseInt(url.searchParams.get('limit'), 10);
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
@@ -595,7 +613,7 @@ async function saveFacultiesListHelper(supabase, list) {
 }
 
 async function facultiesList(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = getRequestUrl(req);
   const department = url.searchParams.get('department');
   const search = url.searchParams.get('search');
   const includeInactive = url.searchParams.get('includeInactive') === 'true';
@@ -742,11 +760,16 @@ async function facultiesDelete(req, res, id) {
 // ─── Main Router ───────────────────────────────────────────────────────────
 
 export async function handleApiRequest(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = getRequestUrl(req);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   const method = req.method;
 
   try {
+    // Health / Root check
+    if (path === '/api' || path === '/api/health' || path === '/api/index.js' || path === '/api/index') {
+      return json(res, { status: 'ok', message: 'SSMO API is active', timestamp: new Date().toISOString() });
+    }
+
     // Settings
     if (path === '/api/settings') {
       if (method === 'GET') return await settingsGet(req, res);
@@ -771,13 +794,15 @@ export async function handleApiRequest(req, res) {
       if (method === 'GET') return await enquiriesList(req, res);
     }
 
+    // Enquiry /read action
+    const enqReadMatch = path.match(/^\/api\/(?:admin\/)?(?:enquiries|inquiries)\/([^/]+)\/read$/);
+    if (enqReadMatch && (method === 'PATCH' || method === 'PUT')) {
+      return await enquiriesUpdate(req, res, decodeURIComponent(enqReadMatch[1]));
+    }
+
     // Enquiry by ID
     const enqId = extractId(path, '/api/(?:admin/)?(?:enquiries|inquiries)');
     if (enqId) {
-      const readMatch = path.match(/\/read$/);
-      if (readMatch && (method === 'PATCH' || method === 'PUT')) {
-        return await enquiriesUpdate(req, res, enqId);
-      }
       if (method === 'GET') return await enquiriesGet(req, res, enqId);
       if (method === 'PATCH' || method === 'PUT') return await enquiriesUpdate(req, res, enqId);
       if (method === 'DELETE') return await enquiriesDelete(req, res, enqId);
