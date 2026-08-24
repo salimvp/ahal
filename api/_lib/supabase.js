@@ -7,8 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const STORAGE_BUCKET = process.env.SUPABASE_BUCKET_NAME || 'ssmo-assets';
 
 let supabaseInstance = null;
@@ -19,7 +19,7 @@ let supabaseInstance = null;
 export function getSupabase() {
   if (supabaseInstance) return supabaseInstance;
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error('Supabase credentials (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY) are required.');
+    throw new Error('Missing SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
   }
 
   supabaseInstance = createClient(SUPABASE_URL, SUPABASE_KEY, {

@@ -10,7 +10,7 @@ import { importJWK, jwtVerify } from 'jose';
 import { getSupabase } from './supabase.js';
 import { error as sendError } from './response.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const JWKS_URL = SUPABASE_URL ? `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` : null;
 
 let cachedKeys = null;

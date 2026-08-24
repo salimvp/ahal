@@ -10,8 +10,8 @@ This guide explains how to connect and deploy the **SSMO Institute of Teacher Ed
 * **Database:** **Supabase PostgreSQL** (`announcements`, `gallery_albums`, `gallery_photos`, `achievements`, `enquiries`, `settings`, `admins`).
 * **Storage:** **Supabase Storage** (Bucket: `ssmo-assets` for images and circular PDFs).
 * **Authentication:** Admin JWT & Password Management.
-* **Serverless Backend:** Cloudflare Pages Functions (`/functions/api/*`).
-* **Cost:** **₹0 / $0 per month** (Supabase Free Tier + Cloudflare Pages Free Tier).
+* **Serverless Backend:** Vercel Serverless Functions (`/api/*`).
+* **Cost:** **₹0 / $0 per month** (Supabase Free Tier + Vercel Hobby Free Tier).
 
 ---
 
@@ -47,11 +47,13 @@ This guide explains how to connect and deploy the **SSMO Institute of Teacher Ed
 Create a `.env` file in the project root:
 
 ```ini
+# Server-side (Vercel API routes)
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_BUCKET_NAME=ssmo-assets
 
+# Frontend (Vite — must be prefixed with VITE_)
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
 VITE_API_URL=/api
@@ -68,24 +70,19 @@ npm run dev
 
 ---
 
-## 5. Deploy to Cloudflare Pages
+## 5. Deploy to Vercel
 
-1. Push your repository to GitHub (`git push origin main` or `git push ssmo-final main`).
-2. Go to the [Cloudflare Dashboard](https://dash.cloudflare.com/) > **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
-3. Select your repository (`ssmo-final`).
-4. Set the build settings:
-   * **Framework preset:** `Vite`
-   * **Build command:** `npm run build`
-   * **Build output directory:** `dist`
-5. Under **Environment variables (production)**, add:
-   * `VITE_SUPABASE_URL`
-   * `VITE_SUPABASE_ANON_KEY`
-   * `VITE_API_URL` (`/api`)
+1. Push the repository to GitHub.
+2. In the [Vercel Dashboard](https://vercel.com/), import your repository.
+3. Under **Environment Variables**, add:
    * `SUPABASE_URL`
    * `SUPABASE_ANON_KEY`
    * `SUPABASE_SERVICE_ROLE_KEY`
    * `SUPABASE_BUCKET_NAME` (`ssmo-assets`)
-6. Click **Save and Deploy**.
+   * `VITE_SUPABASE_URL` (same as `SUPABASE_URL`)
+   * `VITE_SUPABASE_ANON_KEY` (same as `SUPABASE_ANON_KEY`)
+   * `VITE_API_URL` (`/api`)
+4. Click **Deploy**.
 
 ---
 
