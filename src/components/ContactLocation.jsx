@@ -152,6 +152,17 @@ export default function ContactLocation({ settings = {} }) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Invisible Honeypot field for bot spam prevention */}
+              <input
+                type="text"
+                name="_gotcha"
+                value={formData._gotcha || ''}
+                onChange={(e) => setFormData({ ...formData, _gotcha: e.target.value })}
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">

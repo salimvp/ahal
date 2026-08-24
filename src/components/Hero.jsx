@@ -3,7 +3,7 @@ import SSMOLogo from './SSMOLogo';
 import Button from './ui/Button';
 
 export default function Hero({ settings = {} }) {
-  const heroImage = '/hero-bg.png';
+  const heroImage = settings.hero_poster_image || '/hero-bg.png';
 
   return (
     <section id="hero" className="relative min-h-[95vh] lg:min-h-screen flex flex-col justify-between pt-24 sm:pt-32 pb-10 bg-dark text-white overflow-hidden">

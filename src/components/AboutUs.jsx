@@ -15,17 +15,17 @@ export default function AboutUs({ settings = {} }) {
   }, []);
 
   const principal = {
-    name: 'Shanavas Paravannur',
-    designation: 'Principal, SSMO ITE Tirurangadi',
-    image: '/principal.jpeg',
-    message: 'Welcome to SSMO Institute of Teacher Education. For six decades, we have prepared educators who not only excel in primary pedagogy but also nurture the moral compass of the next generation. Our teacher trainees graduate with rigorous instructional practice, child psychology mastery, and a profound sense of social duty.'
+    name: settings.principal_name || 'Shanavas Paravannur',
+    designation: settings.principal_designation || 'Principal, SSMO ITE Tirurangadi',
+    image: settings.principal_image || '/principal.jpeg',
+    message: settings.principal_message || 'Welcome to SSMO Institute of Teacher Education. For six decades, we have prepared educators who not only excel in primary pedagogy but also nurture the moral compass of the next generation. Our teacher trainees graduate with rigorous instructional practice, child psychology mastery, and a profound sense of social duty.'
   };
 
   const manager = {
-    name: 'MK Bava Sahib',
-    designation: 'Manager, Tirurangadi Muslim Orphanage Committee',
-    image: '/manager.jpeg',
-    message: 'The founding mission of the Tirurangadi Muslim Orphanage Committee is anchored in empowering society through high-quality, value-based education. ITE remains a jewel in our institutional network, continuing to provide state-of-the-art facilities, dedicated faculty, and student support to ensure excellence in teacher education.'
+    name: settings.manager_name || 'MK Bava Sahib',
+    designation: settings.manager_designation || 'Manager, Tirurangadi Muslim Orphanage Committee',
+    image: settings.manager_image || '/manager.jpeg',
+    message: settings.manager_message || 'The founding mission of the Tirurangadi Muslim Orphanage Committee is anchored in empowering society through high-quality, value-based education. ITE remains a jewel in our institutional network, continuing to provide state-of-the-art facilities, dedicated faculty, and student support to ensure excellence in teacher education.'
   };
 
   const currentLeader = activeLeaderTab === 'principal' ? principal : manager;
