@@ -9,7 +9,7 @@ function apiDevServerPlugin() {
       server.middlewares.use(async (req, res, next) => {
         if (req.url && req.url.startsWith('/api')) {
           try {
-            const { onRequest } = await import('./functions/api/[[catchall]].js');
+            const { handleApiRequest } = await import('./worker/index.js');
             const protocol = req.socket.encrypted ? 'https' : 'http';
             const host = req.headers.host || 'localhost:5173';
             const fullUrl = `${protocol}://${host}${req.url}`;
@@ -42,7 +42,7 @@ function apiDevServerPlugin() {
               duplex: 'half',
             });
 
-            const response = await onRequest({ request, env: process.env, params: {} });
+            const response = await handleApiRequest(request, process.env);
 
             res.statusCode = response.status;
             response.headers.forEach((val, key) => {

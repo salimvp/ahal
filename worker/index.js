@@ -1,7 +1,6 @@
 /**
- * SSMO Backend — Cloudflare Pages Functions API Router
- * Pure Supabase Backend: PostgreSQL Database + Auth + Storage
- * Runs natively on Cloudflare Pages Functions & Workers Runtime
+ * SSMO Institute of Teacher Education — Cloudflare Worker
+ * Full-stack Cloudflare Worker + Static Assets + Supabase Backend
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -165,10 +164,9 @@ async function getFacultiesHelper(supabase) {
   return DEFAULT_FACULTIES;
 }
 
-// ─── Main Request Handler ────────────────────────────────────────────────────
+// ─── API Router Handler ──────────────────────────────────────────────────────
 
-export async function onRequest(context) {
-  const { request, env } = context;
+export async function handleApiRequest(request, env) {
   const method = request.method;
 
   if (method === 'OPTIONS') {
@@ -188,7 +186,7 @@ export async function onRequest(context) {
     if (path === '/api' || path === '/api/health') {
       return json({
         status: 'ok',
-        platform: 'Cloudflare Pages Functions',
+        platform: 'Cloudflare Workers',
         message: 'SSMO API is active',
         timestamp: new Date().toISOString(),
       });
@@ -710,3 +708,23 @@ export async function onRequest(context) {
     return error(err.message || 'Internal Server Error', 500);
   }
 }
+
+// ─── Cloudflare Worker Main Entry ────────────────────────────────────────────
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // If it's an API route, handle with Supabase backend router
+    if (url.pathname.startsWith('/api')) {
+      return await handleApiRequest(request, env);
+    }
+
+    // Serve static assets from Vite build with SPA fallback
+    if (env.ASSETS) {
+      return await env.ASSETS.fetch(request);
+    }
+
+    return new Response('Not Found', { status: 404 });
+  }
+};

@@ -86,7 +86,7 @@ export default function WhySSMO() {
             {/* Visual Container - Autoplaying Video */}
             <div className="relative rounded-xl overflow-hidden border border-dark-border shadow-dark-md bg-dark-surface">
               <video
-                src="/why-ssmo-video.mp4"
+                src="https://dnrfscucvxkibcswoekr.supabase.co/storage/v1/object/public/ssmo-assets/videos/why-ssmo-video.mp4"
                 autoPlay
                 loop
                 muted
