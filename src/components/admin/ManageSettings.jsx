@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Upload, User, Phone, Mail, MapPin, CheckCircle2, AlertCircle, X, Shield } from 'lucide-react';
 import { api } from '../../services/api';
+import { supabase } from '../../lib/supabase';
 import Button from '../ui/Button';
 
 export default function ManageSettings() {
@@ -66,8 +67,9 @@ export default function ManageSettings() {
     }
 
     try {
-      await api.changePassword(passwords.current, passwords.next);
-      setPassFeedback({ type: 'success', message: 'Admin password changed successfully' });
+      const { error } = await supabase.auth.updateUser({ password: passwords.next });
+      if (error) throw error;
+      setPassFeedback({ type: 'success', message: 'Password updated successfully' });
       setPasswords({ current: '', next: '', confirm: '' });
     } catch (err) {
       setPassFeedback({ type: 'error', message: err.message || 'Password update failed' });

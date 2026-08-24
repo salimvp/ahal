@@ -18,8 +18,8 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/admin/login');
   };
 
@@ -103,7 +103,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-2 text-xs">
             <span className="text-ink-light-muted">Authenticated user:</span>
             <span className="font-mono font-bold text-accent-light bg-dark px-2 py-0.5 rounded border border-dark-border">
-              {user?.username || 'admin'}
+              {user?.email || 'admin'}
             </span>
           </div>
 

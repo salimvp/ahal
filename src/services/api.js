@@ -1,50 +1,28 @@
+import { supabase } from '../lib/supabase';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('ssmo_admin_token');
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
 export const api = {
-  // Auth
-  async login(username, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-    return data;
-  },
+  // Auth — login/signup are handled by Supabase Auth UI directly
+  // These are kept for potential API-level operations
 
   async verifyToken() {
-    const token = localStorage.getItem('ssmo_admin_token');
-    if (!token) return null;
     try {
-      const res = await fetch(`${API_BASE}/auth/verify`, {
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.user;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      return session.user;
     } catch {
       return null;
     }
-  },
-
-  async changePassword(currentPassword, newPassword) {
-    const res = await fetch(`${API_BASE}/auth/change-password`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ currentPassword, newPassword })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Password update failed');
-    return data;
   },
 
   // Announcements
@@ -66,10 +44,11 @@ export const api = {
   },
 
   async createAnnouncement(payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/announcements`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to create announcement');
@@ -77,10 +56,11 @@ export const api = {
   },
 
   async updateAnnouncement(id, payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/announcements/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to update announcement');
@@ -88,9 +68,10 @@ export const api = {
   },
 
   async deleteAnnouncement(id) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/announcements/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete announcement');
@@ -105,10 +86,11 @@ export const api = {
   },
 
   async createAchievement(payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/achievements`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to create achievement');
@@ -116,10 +98,11 @@ export const api = {
   },
 
   async updateAchievement(id, payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/achievements/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to update achievement');
@@ -127,9 +110,10 @@ export const api = {
   },
 
   async deleteAchievement(id) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/achievements/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete achievement');
@@ -147,10 +131,11 @@ export const api = {
   },
 
   async createGalleryItem(payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/gallery`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to add gallery item');
@@ -158,9 +143,10 @@ export const api = {
   },
 
   async deleteGalleryItem(id) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/gallery/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete gallery item');
@@ -172,7 +158,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/inquiries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to submit inquiry');
@@ -180,27 +166,30 @@ export const api = {
   },
 
   async getInquiries() {
-    const res = await fetch(`${API_BASE}/inquiries`, {
-      headers: getAuthHeaders()
-    });
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/inquiries`, { headers });
     if (!res.ok) throw new Error('Failed to fetch inquiries');
     return res.json();
   },
 
   async markInquiryRead(id) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/inquiries/${id}/read`, {
       method: 'PUT',
-      headers: getAuthHeaders()
+      headers,
     });
     return res.json();
   },
 
   async deleteInquiry(id) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/inquiries/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers,
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete inquiry');
+    return data;
   },
 
   // Settings
@@ -211,10 +200,11 @@ export const api = {
   },
 
   async updateSettings(payload) {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/settings`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to update settings');
@@ -223,19 +213,20 @@ export const api = {
 
   // Upload
   async uploadFile(file) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
     const formData = new FormData();
     formData.append('file', file);
-    const token = localStorage.getItem('ssmo_admin_token');
 
     const res = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: formData
+      body: formData,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'File upload failed');
     return data;
-  }
+  },
 };

@@ -8,7 +8,7 @@ import Busboy from 'busboy';
 import { d1Query } from './d1.js';
 import { getSupabase, dbQuery, uploadFileToSupabase, deleteFileFromSupabase } from './supabase.js';
 import { uploadToR2, deleteFromR2, deleteManyFromR2, getFromR2, generateObjectKey, validateUploadFile } from './r2.js';
-import { requireAuth, authenticateAdmin, generateToken, updateAdminPassword } from './auth.js';
+import { requireAuth } from './auth.js';
 import { json, error, parseBody } from './response.js';
 import { checkRateLimit, validateEnquiryInput, getClientIp } from './security.js';
 
@@ -368,32 +368,6 @@ async function filesGet(req, res, key) {
   else { const buf = await file.body.arrayBuffer(); res.end(Buffer.from(buf)); }
 }
 
-// ─── Auth Handlers ─────────────────────────────────────────────────────────
-
-async function authLogin(req, res) {
-  if (req.method !== 'POST') return error(res, 'Method not allowed', 405);
-  const body = await parseBody(req);
-  const { username, password } = body;
-  const user = await authenticateAdmin(username, password);
-  const token = generateToken(user);
-  return json(res, { token, user: { id: user.id, username: user.username, role: user.role } });
-}
-
-async function authVerify(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return;
-  return json(res, { valid: true, user });
-}
-
-async function authChangePassword(req, res) {
-  if (req.method !== 'POST') return error(res, 'Method not allowed', 405);
-  const body = await parseBody(req);
-  const { username, currentPassword, newPassword } = body;
-  if (!username || !currentPassword || !newPassword) return error(res, 'All fields are required', 400);
-  const result = await updateAdminPassword(username, currentPassword, newPassword);
-  return json(res, result);
-}
-
 // ─── Main Router ───────────────────────────────────────────────────────────
 
 export async function handleApiRequest(req, res) {
@@ -402,11 +376,6 @@ export async function handleApiRequest(req, res) {
   const method = req.method;
 
   try {
-    // Auth routes
-    if (path === '/api/auth/login' && method === 'POST') return await authLogin(req, res);
-    if (path === '/api/auth/verify') return await authVerify(req, res);
-    if (path === '/api/auth/change-password' && method === 'POST') return await authChangePassword(req, res);
-
     // Settings
     if (path === '/api/settings') {
       if (method === 'GET') return await settingsGet(req, res);

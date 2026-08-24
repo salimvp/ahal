@@ -1,32 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Lock, User, ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import SSMOLogo from '../SSMOLogo';
-import Button from '../ui/Button';
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await login(username, password);
-      navigate('/admin/announcements');
-    } catch (err) {
-      setError(err.message || 'Invalid username or password');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Redirect if already authenticated
+  if (user) {
+    navigate('/admin/announcements', { replace: true });
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-dark flex flex-col items-center justify-center p-4 relative text-ink-light">
@@ -57,60 +47,64 @@ export default function AdminLogin() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-              Username
-            </label>
-            <div className="relative">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-light-muted" />
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-dark border border-dark-border rounded-md text-xs sm:text-sm text-white focus:outline-none focus:border-accent-light focus:ring-1 focus:ring-accent-light transition-colors"
-                placeholder="Username"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-light-muted" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-dark border border-dark-border rounded-md text-xs sm:text-sm text-white focus:outline-none focus:border-accent-light focus:ring-1 focus:ring-accent-light transition-colors"
-                placeholder="Password"
-              />
-            </div>
-          </div>
-
-          <div className="p-3 rounded-md bg-dark border border-dark-border text-[11px] text-ink-light-muted">
-            <div className="font-semibold text-ink-light-secondary">Default Credentials:</div>
-            <div className="mt-1 flex items-center justify-between font-mono text-xs">
-              <span>admin</span>
-              <span className="text-accent-light">ssmo@admin2026</span>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            variant="darkPrimary"
-            size="md"
-            className="w-full"
-            loading={loading}
-            iconComponent={Shield}
-          >
-            Authenticate & Sign In
-          </Button>
-        </form>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#0a6c57',
+                  brandAccent: '#08916b',
+                  defaultButtonBackground: '#1a2332',
+                  defaultButtonBackgroundHover: '#243044',
+                  inputBackground: '#0f1724',
+                  inputBorder: '#2a3548',
+                  inputBorderHover: '#3d4f6a',
+                  inputBorderFocus: '#0a6c57',
+                  inputText: '#e2e8f0',
+                  inputPlaceholder: '#64748b',
+                  messageText: '#e2e8f0',
+                  messageBackground: '#1a2332',
+                  dividerBackground: '#2a3548',
+                },
+                space: {
+                  buttonPadding: '12px 16px',
+                  inputPadding: '12px 14px',
+                },
+                radii: {
+                  buttonBorderRadius: '8px',
+                  inputBorderRadius: '8px',
+                },
+                fonts: {
+                  fontFamily: 'Manrope, system-ui, sans-serif',
+                  fontFamilyButton: 'Manrope, system-ui, sans-serif',
+                  fontFamilyLabel: 'Manrope, system-ui, sans-serif',
+                  fontFamilyMessageText: 'Manrope, system-ui, sans-serif',
+                },
+                fontSizes: {
+                  baseBodySize: '13px',
+                  baseButtonSize: '13px',
+                  baseInputSize: '13px',
+                  baseLabelSize: '11px',
+                  baseMessageSize: '12px',
+                },
+                fontWeights: {
+                  baseBodyWeight: '500',
+                  baseButtonWeight: '600',
+                  baseInputWeight: '500',
+                  baseLabelWeight: '600',
+                },
+              },
+            },
+          }}
+          theme="dark"
+          providers={[]}
+          redirectTo={window.location.origin + '/admin/announcements'}
+          magicLink={false}
+          showLinks={false}
+          view="sign_in"
+        />
       </div>
     </div>
   );
