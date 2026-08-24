@@ -100,7 +100,7 @@ export default function AdminLogin() {
           }}
           theme="dark"
           providers={[]}
-          redirectTo={window.location.origin + '/admin/announcements'}
+          redirectTo={window.location.origin}
           magicLink={false}
           showLinks={false}
           view="sign_in"
