@@ -25,7 +25,6 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_BUCKET_NAME=ssmo-assets
-SUPABASE_JWT_SECRET=your_jwt_secret
 ```
 
 ---
@@ -105,7 +104,6 @@ npm run dev
    * `SUPABASE_ANON_KEY`
    * `SUPABASE_SERVICE_ROLE_KEY`
    * `SUPABASE_BUCKET_NAME` (`ssmo-assets`)
-   * `SUPABASE_JWT_SECRET`
 5. Click **Deploy**.
 
 ---

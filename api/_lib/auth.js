@@ -1,59 +1,34 @@
 /**
  * Authentication Library — Supabase Auth Verification
  *
- * Verifies Supabase access tokens using SUPABASE_JWT_SECRET (HS256).
+ * Verifies Supabase access tokens using Supabase Auth getUser API.
  */
 
-import { jwtVerify } from 'jose';
 import { getSupabase } from './supabase.js';
 import { error as sendError } from './response.js';
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
-
 /**
- * Verify a Supabase access token (JWT) using the JWT secret.
- * Falls back to Supabase getUser if JWT verification fails.
+ * Verify a Supabase access token by calling Supabase Auth getUser.
  */
 export async function verifySupabaseToken(token) {
   if (!token) return null;
 
-  // 1. Primary: Verify JWT locally using SUPABASE_JWT_SECRET
-  if (JWT_SECRET) {
-    try {
-      const secretKey = new TextEncoder().encode(JWT_SECRET);
-      const { payload } = await jwtVerify(token, secretKey, {
-        algorithms: ['HS256'],
-      });
-      return {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role || 'authenticated',
-        aud: payload.aud,
-      };
-    } catch {
-      // JWT invalid or expired — fall through to Supabase
-    }
-  }
-
-  // 2. Fallback: Validate token with Supabase Auth
   try {
     const supabase = getSupabase();
-    if (supabase) {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role || 'authenticated',
-          user_metadata: user.user_metadata
-        };
-      }
-    }
-  } catch {
-    // ignore
-  }
+    if (!supabase) return null;
 
-  return null;
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role || 'authenticated',
+      user_metadata: user.user_metadata
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
