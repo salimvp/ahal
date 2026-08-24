@@ -1,56 +1,19 @@
 /**
- * Universal Database Client (Supabase PostgreSQL / Cloudflare D1 / Local SQLite)
+ * Universal Database Client (Supabase PostgreSQL / Cloudflare D1 HTTP REST)
  * 
  * Supports:
  * 1. Supabase PostgreSQL via @supabase/supabase-js
  * 2. Cloudflare D1 HTTP REST API
- * 3. Local SQLite fallback for offline development
  */
 
 import { getSupabase } from './supabase.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_D1_DATABASE_ID = process.env.CF_D1_DATABASE_ID;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
 
-let localDbInstance = null;
-
-async function getLocalDb() {
-  if (localDbInstance) return localDbInstance;
-
-  try {
-    const Database = (await import('better-sqlite3')).default;
-    const dataDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    const dbPath = path.join(dataDir, 'local-d1.sqlite');
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-
-    // Run initial schema if database is empty
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='announcements'").all();
-    if (tables.length === 0) {
-      const schemaPath = path.join(process.cwd(), 'migrations', '0001_initial_schema.sql');
-      if (fs.existsSync(schemaPath)) {
-        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        db.exec(schemaSql);
-      }
-    }
-
-    localDbInstance = db;
-    return localDbInstance;
-  } catch (err) {
-    console.warn('Local SQLite fallback note:', err.message);
-    return null;
-  }
-}
-
 /**
- * Execute SQL / Table operation with Supabase, Cloudflare D1, or Local SQLite
+ * Execute SQL / Table operation with Supabase or Cloudflare D1
  */
 export async function d1Query(sql, params = []) {
   const supabase = getSupabase();
@@ -70,7 +33,7 @@ export async function d1Query(sql, params = []) {
       tableName = tableMatch[1];
     }
 
-    // Try Supabase RPC query if custom query or table abstraction
+    // Try Supabase query if custom query or table abstraction
     try {
       if (isSelect && tableName) {
         let query = supabase.from(tableName).select('*');
@@ -160,52 +123,13 @@ export async function d1Query(sql, params = []) {
     };
   }
 
-  // 3. Local SQLite database fallback
-  const localDb = await getLocalDb();
-  if (!localDb) {
-    throw new Error('Database connection credentials are required.');
-  }
-
-  const isSelect = /^\s*(SELECT|PRAGMA)/i.test(sql.trim());
-  if (isSelect) {
-    const stmt = localDb.prepare(sql);
-    const results = stmt.all(...params);
-    return { results, meta: { changes: 0 } };
-  } else {
-    const stmt = localDb.prepare(sql);
-    const info = stmt.run(...params);
-    return {
-      results: [],
-      meta: {
-        changes: info.changes,
-        last_row_id: info.lastInsertRowid
-      }
-    };
-  }
+  // No database configured
+  throw new Error('Database connection credentials are required. Set SUPABASE_URL and SUPABASE_KEY, or Cloudflare D1 credentials.');
 }
 
 export async function d1Batch(statements) {
-  const localDb = await getLocalDb();
-  if (!localDb) {
-    throw new Error('Database credentials are required.');
-  }
-
-  const results = [];
-  const runTransaction = localDb.transaction((stmts) => {
-    for (const stmt of stmts) {
-      const isSelect = /^\s*(SELECT|PRAGMA)/i.test(stmt.sql.trim());
-      const prepared = localDb.prepare(stmt.sql);
-      if (isSelect) {
-        results.push({ results: prepared.all(...(stmt.params || [])) });
-      } else {
-        const info = prepared.run(...(stmt.params || []));
-        results.push({ results: [], meta: { changes: info.changes } });
-      }
-    }
-  });
-
-  runTransaction(statements);
-  return results;
+  // D1 batch via Supabase or CF REST not fully supported yet
+  throw new Error('Batch queries require Supabase or D1 credentials to be configured.');
 }
 
 export default {

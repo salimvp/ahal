@@ -1,26 +1,18 @@
 /**
- * Storage Client (Supabase Storage & Multi-Provider Support)
+ * Storage Client (Supabase Storage)
  * 
  * Features:
  * - Uploads and deletes using Supabase Storage bucket (`ssmo-assets`)
  * - MIME and extension validation
  * - Safe cryptographic object key generation
- * - Local filesystem fallback for offline development
  */
 
 import { uploadFileToSupabase, deleteFileFromSupabase, getSupabase } from './supabase.js';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 
 // Allowed MIME types and extensions
 const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/svg+xml',
+  'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -92,33 +84,23 @@ export async function deleteManyFromR2(keys) {
 }
 
 /**
- * Get an object stream for proxying
+ * Get an object for proxying
  */
 export async function getFromR2(key) {
   const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase credentials (SUPABASE_URL, SUPABASE_KEY) are required for file retrieval.');
+  }
+
   const bucket = process.env.SUPABASE_BUCKET_NAME || 'ssmo-assets';
+  const { data, error } = await supabase.storage.from(bucket).download(key);
+  if (error || !data) return null;
 
-  if (supabase) {
-    const { data, error } = await supabase.storage.from(bucket).download(key);
-    if (error || !data) return null;
-    const arrayBuffer = await data.arrayBuffer();
-    return {
-      body: Buffer.from(arrayBuffer),
-      contentType: data.type || 'application/octet-stream'
-    };
-  }
-
-  // Local fallback
-  const localFileName = key.replace(/\//g, '-');
-  const localPath = path.join(process.cwd(), 'public', 'uploads', localFileName);
-  if (fs.existsSync(localPath)) {
-    return {
-      body: fs.createReadStream(localPath),
-      contentType: 'application/octet-stream'
-    };
-  }
-
-  return null;
+  const arrayBuffer = await data.arrayBuffer();
+  return {
+    body: Buffer.from(arrayBuffer),
+    contentType: data.type || 'application/octet-stream'
+  };
 }
 
 export default {
