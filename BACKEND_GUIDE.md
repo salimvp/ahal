@@ -21,16 +21,11 @@ This guide explains the backend architecture for the **SSMO Institute of Teacher
 ### Environment Variables (`.env`)
 
 ```ini
-# Server-side (Vercel API routes)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_BUCKET_NAME=ssmo-assets
-
-# Frontend (Vite — must be prefixed with VITE_)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_API_URL=/api
+SUPABASE_JWT_SECRET=your_jwt_secret
 ```
 
 ---
@@ -110,9 +105,7 @@ npm run dev
    * `SUPABASE_ANON_KEY`
    * `SUPABASE_SERVICE_ROLE_KEY`
    * `SUPABASE_BUCKET_NAME` (`ssmo-assets`)
-   * `VITE_SUPABASE_URL` (same as `SUPABASE_URL`)
-   * `VITE_SUPABASE_ANON_KEY` (same as `SUPABASE_ANON_KEY`)
-   * `VITE_API_URL` (`/api`)
+   * `SUPABASE_JWT_SECRET`
 5. Click **Deploy**.
 
 ---

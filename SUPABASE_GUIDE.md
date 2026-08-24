@@ -47,16 +47,11 @@ This guide explains how to connect and deploy the **SSMO Institute of Teacher Ed
 Create a `.env` file in the project root:
 
 ```ini
-# Server-side (Vercel API routes)
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_BUCKET_NAME=ssmo-assets
-
-# Frontend (Vite — must be prefixed with VITE_)
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_API_URL=/api
+SUPABASE_JWT_SECRET=your_jwt_secret
 ```
 
 ---
@@ -79,9 +74,7 @@ npm run dev
    * `SUPABASE_ANON_KEY`
    * `SUPABASE_SERVICE_ROLE_KEY`
    * `SUPABASE_BUCKET_NAME` (`ssmo-assets`)
-   * `VITE_SUPABASE_URL` (same as `SUPABASE_URL`)
-   * `VITE_SUPABASE_ANON_KEY` (same as `SUPABASE_ANON_KEY`)
-   * `VITE_API_URL` (`/api`)
+   * `SUPABASE_JWT_SECRET`
 4. Click **Deploy**.
 
 ---

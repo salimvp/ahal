@@ -1,49 +1,41 @@
 /**
  * Authentication Library — Supabase Auth Verification
  *
- * Features:
- * - Verify Supabase access tokens using Supabase Auth client & JWKS/JWT fallback
- * - Authentication Middleware for protected API routes
+ * Verifies Supabase access tokens using SUPABASE_JWT_SECRET (HS256).
  */
 
-import { importJWK, jwtVerify } from 'jose';
+import { jwtVerify } from 'jose';
 import { getSupabase } from './supabase.js';
 import { error as sendError } from './response.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const JWKS_URL = SUPABASE_URL ? `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` : null;
-
-let cachedKeys = null;
-let cacheTime = 0;
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
 /**
- * Fetch Supabase JWKS (JSON Web Key Set) and cache it
- */
-async function fetchJWKS() {
-  if (cachedKeys && Date.now() - cacheTime < CACHE_TTL) return cachedKeys;
-  if (!JWKS_URL) return null;
-
-  try {
-    const res = await fetch(JWKS_URL);
-    if (!res.ok) return cachedKeys;
-    const data = await res.json();
-    cachedKeys = data.keys || [];
-    cacheTime = Date.now();
-    return cachedKeys;
-  } catch {
-    return cachedKeys;
-  }
-}
-
-/**
- * Verify a Supabase access token (JWT) using JWKS fallback
- * Returns the decoded user payload or null if invalid.
+ * Verify a Supabase access token (JWT) using the JWT secret.
+ * Falls back to Supabase getUser if JWT verification fails.
  */
 export async function verifySupabaseToken(token) {
   if (!token) return null;
 
-  // 1. Primary: Direct Supabase getUser validation
+  // 1. Primary: Verify JWT locally using SUPABASE_JWT_SECRET
+  if (JWT_SECRET) {
+    try {
+      const secretKey = new TextEncoder().encode(JWT_SECRET);
+      const { payload } = await jwtVerify(token, secretKey, {
+        algorithms: ['HS256'],
+      });
+      return {
+        id: payload.sub,
+        email: payload.email,
+        role: payload.role || 'authenticated',
+        aud: payload.aud,
+      };
+    } catch {
+      // JWT invalid or expired — fall through to Supabase
+    }
+  }
+
+  // 2. Fallback: Validate token with Supabase Auth
   try {
     const supabase = getSupabase();
     if (supabase) {
@@ -57,35 +49,8 @@ export async function verifySupabaseToken(token) {
         };
       }
     }
-  } catch (err) {
-    // Continue to JWKS fallback
-  }
-
-  // 2. Secondary: JWKS verification
-  if (JWKS_URL) {
-    try {
-      const keys = await fetchJWKS();
-      if (keys && keys.length > 0) {
-        for (const jwk of keys) {
-          try {
-            const publicKey = await importJWK(jwk, jwk.alg || 'ES256');
-            const { payload } = await jwtVerify(token, publicKey, {
-              algorithms: ['ES256'],
-            });
-            return {
-              id: payload.sub,
-              email: payload.email,
-              role: payload.role || 'authenticated',
-              aud: payload.aud,
-            };
-          } catch {
-            continue;
-          }
-        }
-      }
-    } catch {
-      // ignore
-    }
+  } catch {
+    // ignore
   }
 
   return null;
