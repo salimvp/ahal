@@ -2,7 +2,6 @@
  * Single Vercel Serverless Function entry point for all API routes.
  * This keeps us under Vercel Hobby plan's 12-function limit.
  */
-import 'dotenv/config';
 import { handleApiRequest } from './_lib/router.js';
 
 export const config = {

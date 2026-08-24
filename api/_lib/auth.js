@@ -6,7 +6,6 @@
  * - Authentication Middleware for protected API routes
  */
 
-import 'dotenv/config';
 import { importJWK, jwtVerify } from 'jose';
 import { getSupabase } from './supabase.js';
 import { error as sendError } from './response.js';
