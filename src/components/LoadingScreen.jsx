@@ -1,9 +1,10 @@
 import React from 'react';
 import SSMOLogo from './SSMOLogo';
+import BarLoader from './ui/BarLoader';
 
 export default function LoadingScreen({ progress }) {
   const completed = Math.round(progress);
-  const raySpeed = `${Math.max(0.65, 1.75 - completed / 90).toFixed(2)}s`;
+  const loaderSpeed = Math.max(0.65, 1.75 - completed / 90);
 
   return (
     <div
@@ -14,15 +15,13 @@ export default function LoadingScreen({ progress }) {
     >
       <div className="loading-screen__content">
         <SSMOLogo className="loading-screen__logo" />
-        <div
-          className="loading-screen__ray-wrap"
-          style={{ '--loading-progress': `${completed}%`, '--ray-speed': raySpeed }}
-          aria-hidden="true"
-        >
-          <span className="loading-screen__ray loading-screen__ray--left" />
-          <span className="loading-screen__ray loading-screen__ray--right" />
-          <span className="loading-screen__core" />
-        </div>
+        <BarLoader
+          bars={10}
+          barWidth={7}
+          barHeight={38}
+          speed={loaderSpeed}
+          className="loading-screen__bars"
+        />
         <p className="loading-screen__label">Preparing your experience</p>
       </div>
     </div>
