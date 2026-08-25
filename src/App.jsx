@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { api } from './services/api';
 
@@ -28,9 +28,18 @@ import ManageGallery from './components/admin/ManageGallery';
 import ManageFaculties from './components/admin/ManageFaculties';
 import ManageInquiries from './components/admin/ManageInquiries';
 import ManageSettings from './components/admin/ManageSettings';
+import LoadingScreen from './components/LoadingScreen';
+
+const CRITICAL_ASSETS = [
+  '/ssmo-logo.png',
+  '/hero-bg.png',
+  '/our-story.jpg',
+  '/principal.jpeg',
+  '/manager.jpeg'
+];
 
 // Public Homepage Flow with Art-Directed Section Pacing
-function HomePage() {
+function HomePage({ onDataReady }) {
   const [announcements, setAnnouncements] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [gallery, setGallery] = useState([]);
@@ -55,6 +64,7 @@ function HomePage() {
         console.error('Error fetching portal data:', err);
       } finally {
         setLoading(false);
+        onDataReady?.();
       }
     }
     loadData();
@@ -112,6 +122,53 @@ function HomePage() {
   );
 }
 
+function PublicRoute({ children }) {
+  const { pathname } = useLocation();
+  const [assetsReady, setAssetsReady] = useState(0);
+  const [homeDataReady, setHomeDataReady] = useState(pathname !== '/');
+  const [visible, setVisible] = useState(true);
+  const totalTasks = CRITICAL_ASSETS.length + 1;
+  const completedTasks = assetsReady + (homeDataReady ? 1 : 0);
+  const progress = Math.min(100, (completedTasks / totalTasks) * 100);
+
+  useEffect(() => {
+    let mounted = true;
+    setAssetsReady(0);
+
+    const markAssetReady = () => {
+      if (mounted) setAssetsReady((count) => Math.min(count + 1, CRITICAL_ASSETS.length));
+    };
+
+    CRITICAL_ASSETS.forEach((src) => {
+      const image = new Image();
+      image.onload = markAssetReady;
+      image.onerror = markAssetReady;
+      image.src = src;
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setHomeDataReady(pathname !== '/');
+  }, [pathname]);
+
+  useEffect(() => {
+    if (progress < 100) return undefined;
+    const timeout = window.setTimeout(() => setVisible(false), 220);
+    return () => window.clearTimeout(timeout);
+  }, [progress]);
+
+  return (
+    <>
+      {visible && <LoadingScreen progress={progress} />}
+      {React.cloneElement(children, { onDataReady: () => setHomeDataReady(true) })}
+    </>
+  );
+}
+
 // Protected Admin Route
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -130,13 +187,13 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Home */}
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
 
           {/* Gallery Full Page */}
-          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/gallery" element={<PublicRoute><GalleryPage /></PublicRoute>} />
 
           {/* Faculties Full Page */}
-          <Route path="/faculties" element={<FacultiesPage />} />
+          <Route path="/faculties" element={<PublicRoute><FacultiesPage /></PublicRoute>} />
 
           {/* Admin Login */}
           <Route path="/admin/login" element={<AdminLogin />} />

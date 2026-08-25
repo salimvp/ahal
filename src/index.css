@@ -96,3 +96,102 @@
 .pause-marquee:hover .animate-marquee {
   animation-play-state: paused;
 }
+
+/* Initial asset-aware loading screen */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(18, 116, 91, 0.16), transparent 28rem),
+    #0b1019;
+}
+
+.loading-screen--complete {
+  animation: loading-screen-exit 220ms ease-out forwards;
+}
+
+.loading-screen__content {
+  display: flex;
+  width: min(26rem, calc(100vw - 3rem));
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-screen__logo {
+  width: clamp(5.5rem, 12vw, 7.5rem);
+  height: clamp(5.5rem, 12vw, 7.5rem);
+  filter: drop-shadow(0 0 1.5rem rgba(67, 218, 174, 0.3));
+}
+
+.loading-screen__ray-wrap {
+  position: relative;
+  width: min(19rem, 76vw);
+  height: 2.5rem;
+  margin-top: 1.1rem;
+}
+
+.loading-screen__ray {
+  position: absolute;
+  top: 50%;
+  width: calc(var(--loading-progress) * 0.42);
+  max-width: 46%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, #63e0b8, #d5fff1);
+  box-shadow: 0 0 0.5rem #42dcae, 0 0 1.25rem rgba(66, 220, 174, 0.78);
+  animation: loading-ray-pulse var(--ray-speed) ease-in-out infinite;
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.loading-screen__ray--left {
+  right: 50%;
+  transform-origin: right;
+}
+
+.loading-screen__ray--right {
+  left: 50%;
+  transform: translateY(-50%) scaleX(-1);
+  transform-origin: left;
+}
+
+.loading-screen__core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #ecfff9;
+  box-shadow: 0 0 0.65rem 0.12rem #63e0b8;
+}
+
+.loading-screen__label {
+  margin-top: 0.15rem;
+  color: rgba(224, 248, 241, 0.7);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes loading-ray-pulse {
+  0%, 100% { opacity: 0.55; filter: brightness(0.8); }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+
+@keyframes loading-screen-exit {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-screen,
+  .loading-screen__ray {
+    animation: none;
+  }
+}
