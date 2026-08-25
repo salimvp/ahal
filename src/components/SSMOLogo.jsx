@@ -11,6 +11,8 @@ export default function SSMOLogo({ className = "w-20 h-20", showText = false }) 
         <img
           src="/ssmo-logo.png"
           alt="ITE Logo"
+          fetchPriority="high"
+          decoding="async"
           className={`${className} relative z-10`}
         />
       </div>
