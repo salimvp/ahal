@@ -22,7 +22,7 @@ export default function LoadingScreen({ progress }) {
           speed={loaderSpeed}
           className="loading-screen__bars"
         />
-        <p className="loading-screen__label">Preparing your experience</p>
+        <p className="loading-screen__label">Learn with passion, live with purpose</p>
       </div>
     </div>
   );
