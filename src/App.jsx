@@ -11,6 +11,8 @@ import AnnouncementModal from './components/AnnouncementModal';
 import AboutUs from './components/AboutUs';
 
 import Achievements from './components/Achievements';
+import AchievementModal from './components/AchievementModal';
+import AchievementsPage from './components/AchievementsPage';
 import WhySSMO from './components/WhySSMO';
 import Courses from './components/Courses';
 import Gallery from './components/Gallery';
@@ -47,6 +49,7 @@ function HomePage({ onDataReady }) {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeModalAnnouncement, setActiveModalAnnouncement] = useState(null);
+  const [activeModalAchievement, setActiveModalAchievement] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -95,7 +98,10 @@ function HomePage({ onDataReady }) {
 
 
       {/* 05. ACHIEVEMENTS & ACCOLADES — Wide Editorial Image Carousel / Light */}
-      <Achievements achievements={achievements} />
+      <Achievements
+        achievements={achievements}
+        onSelectAchievement={(item) => setActiveModalAchievement(item)}
+      />
 
       {/* 06. WHY SSMO — Custom Visual Narrative / Dark */}
       <WhySSMO />
@@ -117,6 +123,14 @@ function HomePage({ onDataReady }) {
         <AnnouncementModal
           announcement={activeModalAnnouncement}
           onClose={() => setActiveModalAnnouncement(null)}
+        />
+      )}
+
+      {/* Interactive Achievement Modal Reader */}
+      {activeModalAchievement && (
+        <AchievementModal
+          achievement={activeModalAchievement}
+          onClose={() => setActiveModalAchievement(null)}
         />
       )}
     </div>
@@ -192,6 +206,9 @@ export default function App() {
 
           {/* Announcements Full Page */}
           <Route path="/announcements" element={<PublicRoute><AnnouncementsPage /></PublicRoute>} />
+
+          {/* Achievements Full Page */}
+          <Route path="/achievements" element={<PublicRoute><AchievementsPage /></PublicRoute>} />
 
           {/* Gallery Full Page */}
           <Route path="/gallery" element={<PublicRoute><GalleryPage /></PublicRoute>} />

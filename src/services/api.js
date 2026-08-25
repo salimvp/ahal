@@ -79,8 +79,13 @@ export const api = {
   },
 
   // Achievements
-  async getAchievements() {
-    const res = await fetch(`${API_BASE}/achievements`);
+  async getAchievements(category = 'All', search = '', includeInactive = false) {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (search) params.append('search', search);
+    if (includeInactive) params.append('includeInactive', 'true');
+
+    const res = await fetch(`${API_BASE}/achievements?${params.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch achievements');
     return res.json();
   },

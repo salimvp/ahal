@@ -82,6 +82,12 @@ export default function FacultiesPage() {
               Announcements
             </Link>
             <Link
+              to="/achievements"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Achievements
+            </Link>
+            <Link
               to="/gallery"
               className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
             >
@@ -124,6 +130,13 @@ export default function FacultiesPage() {
                 className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
               >
                 Announcements
+              </Link>
+              <Link
+                to="/achievements"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
+              >
+                Achievements
               </Link>
               <Link
                 to="/gallery"

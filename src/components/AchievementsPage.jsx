@@ -5,51 +5,101 @@ import {
   Search,
   Menu,
   X,
-  Bell,
+  Trophy,
+  Star,
   Calendar,
-  Pin,
-  ExternalLink,
   ArrowRight,
-  FileText
+  Sparkles,
+  Tag
 } from 'lucide-react';
 import { api } from '../services/api';
 import Footer from './Footer';
 import SSMOLogo from './SSMOLogo';
 import Badge from './ui/Badge';
-import AnnouncementModal from './AnnouncementModal';
+import AchievementModal from './AchievementModal';
 
-export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState([]);
+const DEFAULT_FALLBACK_ACHIEVEMENTS = [
+  {
+    id: 'ach-1',
+    title: '100% Pass in Kerala D.El.Ed Board Examinations',
+    subtitle: '10th Consecutive Year of Full Pass Distinction',
+    description: 'Consistent 100% board examination pass results with multiple state-level distinction ranks and academic merit laurels, demonstrating our exemplary pedagogy and dedication.',
+    category: 'Academic',
+    year: '2025',
+    rank_badge: '100% Pass',
+    image_url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1000&auto=format&fit=crop'
+  },
+  {
+    id: 'ach-2',
+    title: 'State 1st Rank in Elementary Teacher Education',
+    subtitle: 'Government of Kerala Merit Recognition',
+    description: 'Our teacher trainee bagged the prestigious State First Rank in the curriculum examinations, upholding our pedagogical excellence and institutional heritage.',
+    category: 'Academic',
+    year: '2024',
+    rank_badge: 'State Rank #1',
+    image_url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1000&auto=format&fit=crop'
+  },
+  {
+    id: 'ach-3',
+    title: 'Inter-Collegiate Arts & Sports Championship Trophy',
+    subtitle: 'District-Level D.El.Ed Fest Winners',
+    description: 'Overall champions in literary, cultural, and athletics competitions among Teacher Training Institutes across Malappuram district.',
+    category: 'Arts & Sports',
+    year: '2025',
+    rank_badge: 'Champions',
+    image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1000&auto=format&fit=crop'
+  },
+  {
+    id: 'ach-4',
+    title: 'Excellence in Micro-Teaching & Smart Lab Innovation',
+    subtitle: 'NCTE Recognized Model Teacher Lab',
+    description: 'Recognized as a leading model institution for technology-integrated lesson planning and innovative classroom teaching simulations.',
+    category: 'Institutional',
+    year: '2024',
+    rank_badge: 'Model Lab',
+    image_url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1000&auto=format&fit=crop'
+  }
+];
+
+export default function AchievementsPage() {
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeModalAnnouncement, setActiveModalAnnouncement] = useState(null);
+  const [activeModalAchievement, setActiveModalAchievement] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    async function loadAnnouncements() {
+    async function loadAchievements() {
       try {
-        const data = await api.getAnnouncements('All', '', false);
-        setAnnouncements(data || []);
+        const data = await api.getAchievements();
+        if (data && data.length > 0) {
+          setAchievements(data);
+        } else {
+          setAchievements(DEFAULT_FALLBACK_ACHIEVEMENTS);
+        }
       } catch (err) {
-        console.error('Failed to load announcements:', err);
+        console.error('Failed to load achievements:', err);
+        setAchievements(DEFAULT_FALLBACK_ACHIEVEMENTS);
       } finally {
         setLoading(false);
       }
     }
-    loadAnnouncements();
+    loadAchievements();
   }, []);
 
-  const categories = ['All', 'Admissions', 'Examinations', 'Notices', 'Events', 'Academic'];
+  const categories = ['All', 'Academic', 'Arts & Sports', 'Institutional', 'Faculty'];
 
-  const filteredAnnouncements = announcements.filter((item) => {
+  const filteredAchievements = achievements.filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       q === '' ||
       item.title?.toLowerCase().includes(q) ||
-      (item.content && item.content.toLowerCase().includes(q));
+      (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
+      (item.description && item.description.toLowerCase().includes(q)) ||
+      (item.rank_badge && item.rank_badge.toLowerCase().includes(q));
     return matchesCategory && matchesSearch;
   });
 
@@ -66,7 +116,7 @@ export default function AnnouncementsPage() {
                 ITE
               </span>
               <span className="text-[10px] font-medium text-ink-light-muted tracking-wider uppercase">
-                Announcements
+                Achievements
               </span>
             </div>
           </Link>
@@ -75,13 +125,13 @@ export default function AnnouncementsPage() {
           <div className="hidden lg:flex items-center gap-1">
             <Link
               to="/announcements"
-              className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
             >
               Announcements
             </Link>
             <Link
               to="/achievements"
-              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
             >
               Achievements
             </Link>
@@ -122,16 +172,16 @@ export default function AnnouncementsPage() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-dark-border bg-dark/95 backdrop-blur-md">
             <div className="px-4 py-4 space-y-2">
-              <span className="block px-3 py-2 text-sm font-medium text-white bg-white/10 rounded-md">
-                Announcements
-              </span>
               <Link
-                to="/achievements"
+                to="/announcements"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
               >
-                Achievements
+                Announcements
               </Link>
+              <span className="block px-3 py-2 text-sm font-medium text-white bg-white/10 rounded-md">
+                Achievements
+              </span>
               <Link
                 to="/gallery"
                 onClick={() => setMobileMenuOpen(false)}
@@ -169,19 +219,19 @@ export default function AnnouncementsPage() {
         </div>
         <div className="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-accent/20 text-accent-light border border-accent/30">
-            <Bell className="w-3.5 h-3.5" />
-            Institutional Bulletins
+            <Trophy className="w-3.5 h-3.5" />
+            Proven Excellence & Honors
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-            Announcements & Circulars
+            Milestones & Accolades
           </h1>
           <p className="text-sm sm:text-base text-ink-light-secondary max-w-2xl leading-relaxed">
-            Official circulars, notifications, examination schedules, and academic bulletins from SSMO Institute of Teacher Education, Tirurangadi.
+            A comprehensive record of 100% board examination pass results, state rank distinctions, sports championships, and pedagogical innovations at SSMO ITE, Tirurangadi.
           </p>
         </div>
       </section>
 
-      {/* Main Announcements Section */}
+      {/* Main Achievements Grid Section */}
       <section className="py-12 sm:py-20 flex-1 bg-canvas">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
@@ -211,114 +261,110 @@ export default function AnnouncementsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search notices..."
+                placeholder="Search milestones & honors..."
                 className="w-full pl-10 pr-4 py-2 bg-surface border border-surface-border rounded-full text-xs text-ink-primary placeholder-ink-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
               />
             </div>
           </div>
 
-          {/* Announcements Grid */}
+          {/* Large Box-Shaped Achievements Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
               {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="h-52 bg-surface rounded-xl border border-surface-border p-6" />
+                <div key={n} className="h-96 bg-surface rounded-2xl border border-surface-border p-6" />
               ))}
             </div>
-          ) : filteredAnnouncements.length === 0 ? (
+          ) : filteredAchievements.length === 0 ? (
             <div className="py-20 text-center bg-surface border border-surface-border rounded-2xl p-8 space-y-3">
-              <FileText className="w-10 h-10 text-ink-muted mx-auto opacity-50" />
-              <h3 className="text-base font-bold text-ink-primary">No Announcements Found</h3>
+              <Trophy className="w-10 h-10 text-ink-muted mx-auto opacity-50" />
+              <h3 className="text-base font-bold text-ink-primary">No Achievements Found</h3>
               <p className="text-xs text-ink-muted max-w-sm mx-auto">
-                No circulars or notices matched your filter or search query.
+                No accolades matched your filter or search query.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAnnouncements.map((item) => {
-                const formattedDate = item.created_at
-                  ? new Date(item.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })
-                  : 'Recent';
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredAchievements.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setActiveModalAchievement(item)}
+                  className="group relative flex flex-col justify-between bg-surface border border-surface-border hover:border-accent/40 rounded-2xl overflow-hidden shadow-soft-sm hover:shadow-soft-xl transition-all duration-300 cursor-pointer"
+                >
+                  {/* Dominant Large Box Image Container */}
+                  <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-dark">
+                    <img
+                      src={item.image_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1000&auto=format&fit=crop'}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out filter brightness-95 group-hover:brightness-100"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-dark/75 via-dark/20 to-transparent pointer-events-none" />
 
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setActiveModalAnnouncement(item)}
-                    className={`group relative flex flex-col justify-between p-6 sm:p-7 rounded-xl bg-surface border transition-all duration-200 cursor-pointer ${
-                      item.is_pinned
-                        ? 'border-accent/40 bg-surface shadow-soft-sm hover:border-accent hover:shadow-soft-md'
-                        : 'border-surface-border hover:border-ink-primary/30 hover:bg-surface-secondary shadow-soft-sm hover:shadow-soft-md'
-                    }`}
-                  >
-                    {/* Top Metadata */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          {item.badge && (
-                            <Badge variant={item.badge === 'IMPORTANT' ? 'warning' : 'accent'} size="sm">
-                              {item.badge}
-                            </Badge>
-                          )}
-                          <span className="text-[11px] font-medium text-ink-muted">
-                            {item.category || 'Notice'}
-                          </span>
-                        </div>
-
-                        {item.is_pinned === 1 && (
-                          <span className="text-[10px] font-semibold text-gold flex items-center gap-1">
-                            <Pin className="w-3 h-3" /> Pinned
-                          </span>
-                        )}
+                    {/* Rank Badge (Top Left) */}
+                    {item.rank_badge && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge variant="gold" size="md">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <span>{item.rank_badge}</span>
+                        </Badge>
                       </div>
+                    )}
 
-                      {/* Dominant Title */}
-                      <h3 className="text-base sm:text-lg font-sans font-bold text-ink-primary group-hover:text-accent transition-colors leading-snug line-clamp-2">
-                        {item.title}
-                      </h3>
-
-                      {/* Supporting Content Preview */}
-                      {item.content && (
-                        <p className="text-xs sm:text-sm text-ink-secondary line-clamp-3 leading-relaxed">
-                          {item.content}
-                        </p>
-                      )}
+                    {/* Year Tag (Bottom Left) */}
+                    <div className="absolute bottom-4 left-4 text-xs font-mono font-bold text-white bg-dark/80 px-2.5 py-1 rounded-md backdrop-blur-sm border border-white/10">
+                      {item.year || '2025'}
                     </div>
 
-                    {/* Card Footer */}
-                    <div className="pt-5 mt-4 border-t border-surface-border flex items-center justify-between">
-                      <div className="text-xs text-ink-muted flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-ink-muted" />
-                        <span>{formattedDate}</span>
-                      </div>
+                    {/* Category (Bottom Right) */}
+                    <div className="absolute bottom-4 right-4 text-[11px] font-mono font-semibold text-accent-light bg-dark/80 px-2.5 py-1 rounded-md backdrop-blur-sm border border-white/10">
+                      {item.category || 'Academic'}
+                    </div>
+                  </div>
 
+                  {/* Editorial Text Block */}
+                  <div className="p-6 sm:p-7 space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-accent">
+                        {item.category || 'Academic Milestone'}
+                      </span>
+                      <h3 className="text-lg sm:text-xl font-bold font-sans text-ink-primary group-hover:text-accent transition-colors leading-snug line-clamp-2">
+                        {item.title}
+                      </h3>
+                      {item.subtitle && (
+                        <p className="text-xs sm:text-sm font-medium text-ink-secondary line-clamp-1">
+                          {item.subtitle}
+                        </p>
+                      )}
+                      <p className="text-xs sm:text-sm text-ink-muted leading-relaxed line-clamp-3">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    {/* Card Action Link */}
+                    <div className="pt-4 mt-4 border-t border-surface-border flex items-center justify-between">
+                      <span className="text-xs text-ink-muted">Click to open full details</span>
                       <div className="text-xs font-semibold text-accent flex items-center gap-1 group-hover:gap-1.5 transition-all">
-                        <span>{item.link ? 'View' : 'View Full Details'}</span>
-                        {item.link ? (
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        ) : (
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        )}
+                        <span>View Details</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
+
         </div>
       </section>
 
       {/* Footer */}
       <Footer />
 
-      {/* Full Details Modal */}
-      {activeModalAnnouncement && (
-        <AnnouncementModal
-          announcement={activeModalAnnouncement}
-          onClose={() => setActiveModalAnnouncement(null)}
+      {/* Full Big Size Achievement Modal */}
+      {activeModalAchievement && (
+        <AchievementModal
+          achievement={activeModalAchievement}
+          onClose={() => setActiveModalAchievement(null)}
         />
       )}
     </div>

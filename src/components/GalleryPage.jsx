@@ -85,6 +85,12 @@ export default function GalleryPage() {
             >
               Announcements
             </Link>
+            <Link
+              to="/achievements"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Achievements
+            </Link>
             <button
               onClick={() => scrollToSection('gallery')}
               className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
@@ -128,6 +134,13 @@ export default function GalleryPage() {
                 className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
               >
                 Announcements
+              </Link>
+              <Link
+                to="/achievements"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
+              >
+                Achievements
               </Link>
               <button
                 onClick={() => scrollToSection('gallery')}

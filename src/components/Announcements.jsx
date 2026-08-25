@@ -146,7 +146,7 @@ export default function Announcements({ announcements = [], onSelectAnnouncement
                     </div>
 
                     <div className="text-xs font-semibold text-accent flex items-center gap-1 group-hover:gap-1.5 transition-all">
-                      <span>{item.link ? 'View Document' : 'Read Notice'}</span>
+                      <span>{item.link ? 'View' : 'Read Notice'}</span>
                       {item.link ? (
                         <ExternalLink className="w-3.5 h-3.5" />
                       ) : (
