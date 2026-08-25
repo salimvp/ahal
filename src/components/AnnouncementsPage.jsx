@@ -5,54 +5,52 @@ import {
   Search,
   Menu,
   X,
-  Users,
-  Sparkles
+  Bell,
+  Calendar,
+  Pin,
+  ExternalLink,
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 import { api } from '../services/api';
 import Footer from './Footer';
 import SSMOLogo from './SSMOLogo';
+import Badge from './ui/Badge';
+import AnnouncementModal from './AnnouncementModal';
 
-export default function FacultiesPage() {
-  const [faculties, setFaculties] = useState([]);
+export default function AnnouncementsPage() {
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeModalAnnouncement, setActiveModalAnnouncement] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    async function loadFaculties() {
+    async function loadAnnouncements() {
       try {
-        const data = await api.getFaculties('All', '', false);
-        setFaculties(data || []);
+        const data = await api.getAnnouncements('All', '', false);
+        setAnnouncements(data || []);
       } catch (err) {
-        console.error('Failed to load faculties:', err);
+        console.error('Failed to load announcements:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadFaculties();
+    loadAnnouncements();
   }, []);
 
-  // Dynamically extract unique typed departments
-  const typedDepartments = [
-    'All',
-    ...Array.from(
-      new Set(
-        faculties
-          .map((f) => f.department?.trim())
-          .filter((dept) => Boolean(dept) && dept !== 'All')
-      )
-    )
-  ];
+  const categories = ['All', 'Admissions', 'Examinations', 'Notices', 'Events', 'Academic'];
 
-  const filteredFaculties = faculties.filter((f) => {
-    const matchesDept = selectedDept === 'All' || f.department?.trim() === selectedDept;
-    const q = searchQuery.toLowerCase();
+  const filteredAnnouncements = announcements.filter((item) => {
+    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      f.name?.toLowerCase().includes(q) ||
-      f.department?.toLowerCase().includes(q);
-    return matchesDept && matchesSearch;
+      q === '' ||
+      item.title?.toLowerCase().includes(q) ||
+      (item.content && item.content.toLowerCase().includes(q));
+    return matchesCategory && matchesSearch;
   });
 
   return (
@@ -68,7 +66,7 @@ export default function FacultiesPage() {
                 ITE
               </span>
               <span className="text-[10px] font-medium text-ink-light-muted tracking-wider uppercase">
-                Faculty Directory
+                Announcements
               </span>
             </div>
           </Link>
@@ -77,7 +75,7 @@ export default function FacultiesPage() {
           <div className="hidden lg:flex items-center gap-1">
             <Link
               to="/announcements"
-              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
             >
               Announcements
             </Link>
@@ -89,7 +87,7 @@ export default function FacultiesPage() {
             </Link>
             <Link
               to="/faculties"
-              className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
             >
               Faculties
             </Link>
@@ -118,13 +116,9 @@ export default function FacultiesPage() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-dark-border bg-dark/95 backdrop-blur-md">
             <div className="px-4 py-4 space-y-2">
-              <Link
-                to="/announcements"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
-              >
+              <span className="block px-3 py-2 text-sm font-medium text-white bg-white/10 rounded-md">
                 Announcements
-              </Link>
+              </span>
               <Link
                 to="/gallery"
                 onClick={() => setMobileMenuOpen(false)}
@@ -132,9 +126,13 @@ export default function FacultiesPage() {
               >
                 Gallery
               </Link>
-              <span className="block px-3 py-2 text-sm font-medium text-white bg-white/10 rounded-md">
+              <Link
+                to="/faculties"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
+              >
                 Faculties
-              </span>
+              </Link>
               <Link
                 to="/"
                 onClick={() => setMobileMenuOpen(false)}
@@ -147,7 +145,7 @@ export default function FacultiesPage() {
         )}
       </header>
 
-      {/* Hero Header Section */}
+      {/* Hero Banner Section */}
       <section className="pt-28 pb-16 bg-dark text-white relative overflow-hidden">
         <div className="absolute inset-0 z-0">
           <div
@@ -158,37 +156,37 @@ export default function FacultiesPage() {
         </div>
         <div className="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-accent/20 text-accent-light border border-accent/30">
-            <Sparkles className="w-3.5 h-3.5" />
-            Distinguished Faculty & Mentors
+            <Bell className="w-3.5 h-3.5" />
+            Institutional Bulletins
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-            Meet Our Educational Faculty
+            Announcements & Circulars
           </h1>
           <p className="text-sm sm:text-base text-ink-light-secondary max-w-2xl leading-relaxed">
-            Dedicated educators shaping future school teachers at SSMO Institute of Teacher Education, Tirurangadi.
+            Official circulars, notifications, examination schedules, and academic bulletins from SSMO Institute of Teacher Education, Tirurangadi.
           </p>
         </div>
       </section>
 
-      {/* Main Faculty Section */}
+      {/* Main Announcements Section */}
       <section className="py-12 sm:py-20 flex-1 bg-canvas">
         <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          {/* Department Filter Pills & Search */}
+          {/* Category Filter Pills & Search */}
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between pb-6 border-b border-surface-border">
             {/* Filter Pills */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-              {typedDepartments.map((dept) => (
+              {categories.map((cat) => (
                 <button
-                  key={dept}
-                  onClick={() => setSelectedDept(dept)}
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
                   className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                    selectedDept === dept
+                    selectedCategory === cat
                       ? 'bg-accent text-white shadow-soft-sm scale-102'
                       : 'bg-surface hover:bg-canvas-subtle text-ink-secondary border border-surface-border'
                   }`}
                 >
-                  {dept}
+                  {cat}
                 </button>
               ))}
             </div>
@@ -200,90 +198,116 @@ export default function FacultiesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search faculty name or department..."
+                placeholder="Search notices..."
                 className="w-full pl-10 pr-4 py-2 bg-surface border border-surface-border rounded-full text-xs text-ink-primary placeholder-ink-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
               />
             </div>
           </div>
 
-          {/* Big Box-Shaped Faculty Cards Grid */}
+          {/* Announcements Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className="rounded-2xl bg-surface border border-surface-border overflow-hidden animate-pulse flex flex-col"
-                >
-                  <div className="aspect-[4/5] bg-canvas-subtle" />
-                  <div className="p-5 space-y-2">
-                    <div className="h-5 bg-canvas-subtle rounded w-3/4" />
-                    <div className="h-4 bg-canvas-subtle rounded w-1/2" />
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="h-52 bg-surface rounded-xl border border-surface-border p-6" />
               ))}
             </div>
-          ) : filteredFaculties.length === 0 ? (
+          ) : filteredAnnouncements.length === 0 ? (
             <div className="py-20 text-center bg-surface border border-surface-border rounded-2xl p-8 space-y-3">
-              <Users className="w-10 h-10 text-ink-muted mx-auto opacity-50" />
-              <h3 className="text-base font-bold text-ink-primary">No Faculty Members Found</h3>
+              <FileText className="w-10 h-10 text-ink-muted mx-auto opacity-50" />
+              <h3 className="text-base font-bold text-ink-primary">No Announcements Found</h3>
               <p className="text-xs text-ink-muted max-w-sm mx-auto">
-                No profiles matched your filter or search query.
+                No circulars or notices matched your filter or search query.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-              {filteredFaculties.map((faculty) => (
-                <div
-                  key={faculty.id}
-                  className="group relative flex flex-col bg-surface border border-surface-border rounded-2xl overflow-hidden shadow-soft-sm hover:shadow-soft-xl hover:border-accent/50 transition-all duration-500"
-                >
-                  {/* Big Box-Shaped Image Container (Aspect 4/5) */}
-                  <div className="relative w-full aspect-[4/5] bg-dark overflow-hidden">
-                    <img
-                      src={faculty.image_url || '/principal.jpeg'}
-                      alt={faculty.name}
-                      className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105 filter group-hover:brightness-105"
-                      onError={(e) => {
-                        e.target.src = '/principal.jpeg';
-                      }}
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredAnnouncements.map((item) => {
+                const formattedDate = item.created_at
+                  ? new Date(item.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                  : 'Recent';
 
-                    {/* Dark Vignette / Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-dark/95 via-dark/25 to-transparent" />
-
-                    {/* Bottom Image Overlay (Name & Typed Department) */}
-                    <div className="absolute bottom-4 left-4 right-4 z-10 space-y-1">
-                      <h3 className="text-lg sm:text-xl font-bold font-sans text-white tracking-tight leading-snug drop-shadow-md">
-                        {faculty.name}
-                      </h3>
-                      {faculty.department && (
-                        <div className="inline-block px-2.5 py-0.5 rounded-md bg-accent/90 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
-                          {faculty.department}
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveModalAnnouncement(item)}
+                    className={`group relative flex flex-col justify-between p-6 sm:p-7 rounded-xl bg-surface border transition-all duration-200 cursor-pointer ${
+                      item.is_pinned
+                        ? 'border-accent/40 bg-surface shadow-soft-sm hover:border-accent hover:shadow-soft-md'
+                        : 'border-surface-border hover:border-ink-primary/30 hover:bg-surface-secondary shadow-soft-sm hover:shadow-soft-md'
+                    }`}
+                  >
+                    {/* Top Metadata */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {item.badge && (
+                            <Badge variant={item.badge === 'IMPORTANT' ? 'warning' : 'accent'} size="sm">
+                              {item.badge}
+                            </Badge>
+                          )}
+                          <span className="text-[11px] font-medium text-ink-muted">
+                            {item.category || 'Notice'}
+                          </span>
                         </div>
+
+                        {item.is_pinned === 1 && (
+                          <span className="text-[10px] font-semibold text-gold flex items-center gap-1">
+                            <Pin className="w-3 h-3" /> Pinned
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Dominant Title */}
+                      <h3 className="text-base sm:text-lg font-sans font-bold text-ink-primary group-hover:text-accent transition-colors leading-snug line-clamp-2">
+                        {item.title}
+                      </h3>
+
+                      {/* Supporting Content Preview */}
+                      {item.content && (
+                        <p className="text-xs sm:text-sm text-ink-secondary line-clamp-3 leading-relaxed">
+                          {item.content}
+                        </p>
                       )}
                     </div>
-                  </div>
 
-                  {/* Clean Bottom Card Footer */}
-                  <div className="p-4 bg-surface flex items-center justify-between border-t border-surface-border/60">
-                    <span className="text-xs font-bold text-ink-primary truncate">
-                      {faculty.name}
-                    </span>
-                    {faculty.department && (
-                      <span className="text-[11px] font-medium text-accent shrink-0 ml-2">
-                        {faculty.department}
-                      </span>
-                    )}
+                    {/* Card Footer */}
+                    <div className="pt-5 mt-4 border-t border-surface-border flex items-center justify-between">
+                      <div className="text-xs text-ink-muted flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-ink-muted" />
+                        <span>{formattedDate}</span>
+                      </div>
+
+                      <div className="text-xs font-semibold text-accent flex items-center gap-1 group-hover:gap-1.5 transition-all">
+                        <span>{item.link ? 'View Document' : 'View Full Details'}</span>
+                        {item.link ? (
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-
         </div>
       </section>
 
+      {/* Footer */}
       <Footer />
+
+      {/* Full Details Modal */}
+      {activeModalAnnouncement && (
+        <AnnouncementModal
+          announcement={activeModalAnnouncement}
+          onClose={() => setActiveModalAnnouncement(null)}
+        />
+      )}
     </div>
   );
 }

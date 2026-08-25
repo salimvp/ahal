@@ -5,7 +5,6 @@ import {
   Edit2,
   Trash2,
   ExternalLink,
-  Upload,
   Pin,
   Eye,
   CheckCircle2,
@@ -25,7 +24,6 @@ export default function ManageAnnouncements() {
   const [currentId, setCurrentId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [previewItem, setPreviewItem] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const [formData, setFormData] = useState({
@@ -97,22 +95,6 @@ export default function ManageAnnouncements() {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const result = await api.uploadFile(file);
-      setFormData((prev) => ({ ...prev, link: result.url }));
-      setFeedback({ type: 'success', message: `File uploaded: ${result.filename}` });
-    } catch (err) {
-      setFeedback({ type: 'error', message: err.message || 'Upload failed' });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFeedback({ type: '', message: '' });
@@ -149,7 +131,7 @@ export default function ManageAnnouncements() {
           Announcements & Circulars
         </h1>
         <p className="text-xs text-ink-light-muted mt-1">
-          Add or edit circular titles and attached document links that display on the public announcement board.
+          Add or edit circular titles, content, and external links that display on the public announcement board.
         </p>
       </div>
 
@@ -198,47 +180,29 @@ export default function ManageAnnouncements() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-8">
-              <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-                Target URL / File Link
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={formData.link}
-                  onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                  placeholder="https://... or /uploads/circular.pdf"
-                  className="w-full pl-3.5 pr-10 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white placeholder-ink-light-muted focus:outline-none focus:border-accent-light focus:ring-1 focus:ring-accent-light transition-colors"
-                />
-                {formData.link && (
-                  <a
-                    href={formData.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-light"
-                    title="Test Link"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            <div className="md:col-span-4 flex flex-col justify-end">
-              <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-                Or Upload Document
-              </label>
-              <label className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-md bg-dark hover:bg-dark-elevated text-ink-light text-xs font-semibold border border-dark-border cursor-pointer transition-colors">
-                <Upload className="w-3.5 h-3.5 text-accent-light" />
-                <span>{uploading ? 'Uploading...' : 'Upload PDF/Image'}</span>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-                />
-              </label>
+          <div>
+            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
+              Target URL / External Link (Optional)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.link}
+                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                placeholder="https://... (e.g. official portal, external form, or PDF URL)"
+                className="w-full pl-3.5 pr-10 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white placeholder-ink-light-muted focus:outline-none focus:border-accent-light focus:ring-1 focus:ring-accent-light transition-colors"
+              />
+              {formData.link && (
+                <a
+                  href={formData.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-light hover:text-white transition-colors"
+                  title="Test Link"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           </div>
 

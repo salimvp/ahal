@@ -71,7 +71,7 @@ export default function AnnouncementModal({ announcement, onClose }) {
             </div>
           ) : (
             <p className="text-sm text-ink-muted italic">
-              Please refer to the document or external link below for complete details.
+              Please refer to the official link below for complete details.
             </p>
           )}
 
@@ -83,7 +83,7 @@ export default function AnnouncementModal({ announcement, onClose }) {
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-ink-primary">Attached Link / Document</div>
+                  <div className="text-xs font-semibold text-ink-primary">Official Link / Reference</div>
                   <div className="text-xs text-ink-muted truncate max-w-xs sm:max-w-sm">
                     {announcement.link}
                   </div>
@@ -99,7 +99,7 @@ export default function AnnouncementModal({ announcement, onClose }) {
                 className="w-full sm:w-auto shrink-0"
                 iconComponent={ExternalLink}
               >
-                Open Document
+                Open Link
               </Button>
             </div>
           )}

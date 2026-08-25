@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, ShieldCheck, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 export default function WhySSMO() {
   const narrativePoints = [
@@ -34,7 +34,7 @@ export default function WhySSMO() {
         <div className="max-w-3xl mb-16 space-y-4">
           <span className="eyebrow-dark">
             <span className="w-1.5 h-1.5 rounded-full bg-accent-light" />
-            Why Choose ITE
+            Why Choose SSMO ITE
           </span>
           <h2 className="section-title text-white">
             An institution engineered specifically for exceptional primary educators.
@@ -81,33 +81,17 @@ export default function WhySSMO() {
             ))}
           </div>
 
-          {/* Right Column: Large Authentic Visual + Career Advantage Card */}
+          {/* Right Column: Large Authentic Visual */}
           <div className="lg:col-span-5 space-y-6">
-            {/* Visual Container - Autoplaying Video */}
+            {/* Visual Container - Video with controls, no autoplay, full audio */}
             <div className="relative rounded-xl overflow-hidden border border-dark-border shadow-dark-md bg-dark-surface">
               <video
                 src="https://dnrfscucvxkibcswoekr.supabase.co/storage/v1/object/public/ssmo-assets/videos/why-ssmo-video.mp4"
-                autoPlay
-                loop
-                muted
+                controls
                 playsInline
-                className="w-full h-72 sm:h-80 object-cover"
+                preload="metadata"
+                className="w-full h-80 sm:h-96 object-cover"
               />
-            </div>
-
-            {/* Structured K-TET & Career Coaching Box */}
-            <div className="p-6 rounded-xl bg-dark-surface border border-dark-border space-y-4">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-gold-dark">
-                <ShieldCheck className="w-4 h-4 text-gold-dark" />
-                Career & Competitive Support
-              </div>
-              <h4 className="text-base font-bold text-white">
-                Integrated K-TET, CTET & Kerala PSC Guidance
-              </h4>
-              <p className="text-xs text-ink-light-secondary leading-relaxed">
-                Comprehensive test preparation series, syllabus reviews, and mock exams for Kerala Teacher Eligibility Test (K-TET Cat I & II) to ensure swift school placements.
-              </p>
-
             </div>
           </div>
 

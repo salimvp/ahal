@@ -36,17 +36,14 @@ export default function Gallery({ gallery = [] }) {
         
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-          <div className="space-y-3">
+          <div className="space-y-2">
             <span className="eyebrow">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               Visual Archive
             </span>
             <h2 className="section-title text-ink-primary">
-              Campus Life & Pedagogical Practice
+              Campus Life in SSMO ITE
             </h2>
-            <p className="lead-text">
-              A photographic record of teacher trainees engaged in smart classroom sessions, micro-teaching labs, cultural events, and community outreach.
-            </p>
           </div>
           <Link
             to="/gallery"

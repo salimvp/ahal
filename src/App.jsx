@@ -16,6 +16,7 @@ import Courses from './components/Courses';
 import Gallery from './components/Gallery';
 import GalleryPage from './components/GalleryPage';
 import FacultiesPage from './components/FacultiesPage';
+import AnnouncementsPage from './components/AnnouncementsPage';
 import ContactLocation from './components/ContactLocation';
 import Footer from './components/Footer';
 
@@ -188,6 +189,9 @@ export default function App() {
         <Routes>
           {/* Public Home */}
           <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
+
+          {/* Announcements Full Page */}
+          <Route path="/announcements" element={<PublicRoute><AnnouncementsPage /></PublicRoute>} />
 
           {/* Gallery Full Page */}
           <Route path="/gallery" element={<PublicRoute><GalleryPage /></PublicRoute>} />

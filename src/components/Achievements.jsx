@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Star, Pause, Play } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Star, Pause, Play, ArrowRight } from 'lucide-react';
 import SectionHeader from './ui/SectionHeader';
 import Badge from './ui/Badge';
 
@@ -7,7 +8,7 @@ export default function Achievements({ achievements = [] }) {
   const [isPaused, setIsPaused] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const categories = ['All', 'Academic', 'Arts & Sports', 'Institutional', 'Pedagogy'];
+  const categories = ['All', 'Academic', 'Arts & Sports', 'Institutional'];
 
   const filtered = achievements.filter(
     (item) => activeFilter === 'All' || item.category === activeFilter
@@ -23,22 +24,32 @@ export default function Achievements({ achievements = [] }) {
         <SectionHeader
           eyebrow="Proven Excellence"
           title="Milestones & Accolades"
-          description="Consistent 100% board examination pass results, state rank distinctions, and laurels in pedagogical innovations."
+          description="Consistent 100% board examination pass results, state rank distinctions, and laurels in educational innovations."
           action={
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveFilter(cat)}
-                  className={`px-3 py-1 rounded-sm text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                    activeFilter === cat
-                      ? 'bg-accent text-white font-semibold'
-                      : 'bg-surface text-ink-secondary hover:text-ink-primary border border-surface-border'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveFilter(cat)}
+                    className={`px-3 py-1.5 rounded-sm text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                      activeFilter === cat
+                        ? 'bg-accent text-white font-semibold'
+                        : 'bg-surface text-ink-secondary hover:text-ink-primary border border-surface-border'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <Link
+                to="/announcements"
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-accent text-white text-xs font-semibold hover:bg-accent-hover transition-colors shadow-soft-sm"
+              >
+                <span>View More</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           }
         />
@@ -46,9 +57,10 @@ export default function Achievements({ achievements = [] }) {
 
       {/* Wide Editorial Carousel (Extends Wider than standard grid - Design Principle 33) */}
       <div
-        className="relative w-full overflow-hidden pause-marquee py-2"
+        className="relative w-full overflow-hidden pause-marquee py-2 cursor-pointer select-none"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onClick={() => setIsPaused((prev) => !prev)}
       >
         {/* Subtle Edge Fades */}
         <div className="absolute left-0 top-0 bottom-0 w-8 sm:w-20 bg-gradient-to-r from-canvas to-transparent z-10 pointer-events-none" />
@@ -116,7 +128,7 @@ export default function Achievements({ achievements = [] }) {
       {/* Controls & Marquee Indicator */}
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 mt-6 flex items-center justify-between text-xs text-ink-muted">
         <span className="text-[11px]">
-          Hover to pause carousel stream
+          Hover or tap to pause / resume stream
         </span>
         <button
           onClick={() => setIsPaused(!isPaused)}

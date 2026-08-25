@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Upload, User, Phone, Mail, MapPin, CheckCircle2, AlertCircle, X, Shield } from 'lucide-react';
+import { Settings, Save, Upload, User, Phone, Mail, MapPin, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { api } from '../../services/api';
-import { supabase } from '../../lib/supabase';
 import Button from '../ui/Button';
 
 export default function ManageSettings() {
@@ -9,9 +8,6 @@ export default function ManageSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
-
-  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
-  const [passFeedback, setPassFeedback] = useState({ type: '', message: '' });
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -57,25 +53,6 @@ export default function ManageSettings() {
     }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    setPassFeedback({ type: '', message: '' });
-
-    if (passwords.next !== passwords.confirm) {
-      setPassFeedback({ type: 'error', message: 'New passwords do not match' });
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password: passwords.next });
-      if (error) throw error;
-      setPassFeedback({ type: 'success', message: 'Password updated successfully' });
-      setPasswords({ current: '', next: '', confirm: '' });
-    } catch (err) {
-      setPassFeedback({ type: 'error', message: err.message || 'Password update failed' });
-    }
-  };
-
   if (loading) {
     return <div className="text-center py-12 text-ink-light-muted text-xs">Loading settings...</div>;
   }
@@ -118,7 +95,7 @@ export default function ManageSettings() {
             <span>Principal's Desk Details</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
                 Principal Name
@@ -127,18 +104,6 @@ export default function ManageSettings() {
                 type="text"
                 value={settings.principal_name || ''}
                 onChange={(e) => handleChange('principal_name', e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-                Qualifications
-              </label>
-              <input
-                type="text"
-                value={settings.principal_qualification || ''}
-                onChange={(e) => handleChange('principal_qualification', e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
               />
             </div>
@@ -200,7 +165,7 @@ export default function ManageSettings() {
             <span>Manager's Desk (Tirurangadi Muslim Orphanage Committee)</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
                 Manager / General Secretary Name
@@ -221,18 +186,6 @@ export default function ManageSettings() {
                 type="text"
                 value={settings.manager_designation || ''}
                 onChange={(e) => handleChange('manager_designation', e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-                Role Title
-              </label>
-              <input
-                type="text"
-                value={settings.manager_qualification || ''}
-                onChange={(e) => handleChange('manager_qualification', e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
               />
             </div>
@@ -357,71 +310,6 @@ export default function ManageSettings() {
           Save All System Settings
         </Button>
       </form>
-
-      {/* Password Management */}
-      <div className="bg-dark-surface border border-dark-border rounded-xl p-6 sm:p-8 space-y-5">
-        <h2 className="text-base font-bold font-sans text-white flex items-center gap-2">
-          <Shield className="w-4 h-4 text-accent-light" />
-          <span>Security & Password Management</span>
-        </h2>
-
-        {passFeedback.message && (
-          <div
-            className={`p-3 rounded-md text-xs ${
-              passFeedback.type === 'success'
-                ? 'bg-accent/15 border border-accent/30 text-accent-light'
-                : 'bg-rose-950/60 border border-rose-800 text-rose-300'
-            }`}
-          >
-            {passFeedback.message}
-          </div>
-        )}
-
-        <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-          <div>
-            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-              Current Password
-            </label>
-            <input
-              type="password"
-              required
-              value={passwords.current}
-              onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-              New Password
-            </label>
-            <input
-              type="password"
-              required
-              value={passwords.next}
-              onChange={(e) => setPasswords({ ...passwords, next: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-light-secondary mb-1.5">
-              Confirm New Password
-            </label>
-            <input
-              type="password"
-              required
-              value={passwords.confirm}
-              onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-dark border border-dark-border rounded-md text-xs text-white focus:outline-none focus:border-accent-light"
-            />
-          </div>
-
-          <Button type="submit" variant="dark" size="sm" icon={false}>
-            Update Password
-          </Button>
-        </form>
-      </div>
     </div>
   );
 }

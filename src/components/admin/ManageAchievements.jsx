@@ -22,7 +22,7 @@ export default function ManageAchievements() {
     display_order: 0
   });
 
-  const categories = ['Academic', 'Arts & Sports', 'Institutional', 'Pedagogy', 'Faculty'];
+  const categories = ['Academic', 'Arts & Sports', 'Institutional', 'Faculty'];
 
   const fetchAchievements = async () => {
     setLoading(true);

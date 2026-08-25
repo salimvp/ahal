@@ -79,9 +79,15 @@ export default function GalleryPage() {
 
           {/* Desktop Nav Links */}
           <div className="hidden lg:flex items-center gap-1">
+            <Link
+              to="/announcements"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Announcements
+            </Link>
             <button
               onClick={() => scrollToSection('gallery')}
-              className="px-3 py-1.5 rounded-sm text-xs font-medium text-ink-light-secondary hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-sm text-xs font-medium text-white bg-white/10"
             >
               Photos
             </button>
@@ -116,9 +122,16 @@ export default function GalleryPage() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-dark-border bg-dark/95 backdrop-blur-md">
             <div className="px-4 py-4 space-y-2">
+              <Link
+                to="/announcements"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors"
+              >
+                Announcements
+              </Link>
               <button
                 onClick={() => scrollToSection('gallery')}
-                className="block w-full text-left px-3 py-2 text-sm font-medium text-ink-light hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+                className="block w-full text-left px-3 py-2 text-sm font-medium text-white bg-white/10 rounded-md transition-colors cursor-pointer"
               >
                 Photos
               </button>

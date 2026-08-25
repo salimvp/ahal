@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, ArrowRight, ExternalLink, Calendar, Pin } from 'lucide-react';
 import SectionHeader from './ui/SectionHeader';
 import Badge from './ui/Badge';
@@ -28,6 +29,15 @@ export default function Announcements({ announcements = [], onSelectAnnouncement
           eyebrow="Institutional Bulletins"
           title="Announcements & Circulars"
           description="Official notices regarding D.El.Ed admissions, board examinations, school internships, and academic schedules."
+          action={
+            <Link
+              to="/announcements"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-accent text-white text-xs font-semibold hover:bg-accent-hover transition-colors shadow-soft-sm shrink-0"
+            >
+              <span>View All Bulletins</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          }
         />
 
         {/* Minimal Category Filter & Search Strip */}

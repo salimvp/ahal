@@ -92,9 +92,11 @@
   background: #0a6c57;
 }
 
-/* Marquee pause on hover */
-.pause-marquee:hover .animate-marquee {
-  animation-play-state: paused;
+/* Marquee pause on hover (desktop only) */
+@media (hover: hover) {
+  .pause-marquee:hover .animate-marquee {
+    animation-play-state: paused;
+  }
 }
 
 /* Initial asset-aware loading screen */

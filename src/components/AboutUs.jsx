@@ -78,20 +78,12 @@ export default function AboutUs({ settings = {} }) {
             </p>
 
             {/* Core Values Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-2">
               <div className="flex items-start gap-2.5 p-3 rounded-md bg-surface border border-surface-border">
                 <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <strong className="text-ink-primary block font-semibold">NCTE Recognized</strong>
                   <span className="text-ink-muted">Approved 2-year elementary diploma</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-3 rounded-md bg-surface border border-surface-border">
-                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <strong className="text-ink-primary block font-semibold">Inclusive Welfare</strong>
-                  <span className="text-ink-muted">Scholarships & student boarding</span>
                 </div>
               </div>
             </div>

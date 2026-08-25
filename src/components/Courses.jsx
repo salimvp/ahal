@@ -8,7 +8,7 @@ export default function Courses() {
     { label: 'Duration', value: '2 Academic Years (4 Semesters)' },
     { label: 'Recognition', value: 'National Council for Teacher Education (NCTE) & Govt. of Kerala' },
     { label: 'Eligibility', value: 'Higher Secondary (+2) or equivalent with minimum 50% marks' },
-    { label: 'Medium', value: 'Malayalam / English / Arabic / Hindi' },
+    { label: 'Medium', value: 'Malayalam' },
     { label: 'Career Pathway', value: 'Primary & Upper Primary School Teacher (LPSA / UPSA)' }
   ];
 
@@ -19,7 +19,7 @@ export default function Courses() {
     'ICT in Education & Modern Learning Technologies',
     'Art, Craft & TLM (Teaching Learning Material) Creation',
     'Physical Education, Health & Community Outreach',
-    '120+ Days Intensive School Internship & Micro-Teaching',
+    '100+ Days Intensive School Internship & Micro-Teaching',
     'Educational Action Research & Reflective Journaling'
   ];
 
